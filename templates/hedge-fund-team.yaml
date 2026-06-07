@@ -1,0 +1,9 @@
+# Investment idea generation, debate, and sizing council.
+# Copied into .council/council.yaml by `/council convene hedge-fund-team`.
+name: hedge-fund-team
+description: Generate, stress-test, and size investment ideas
+chair: portfolio-manager
+seats: [portfolio-manager, quant-analyst, risk-manager, macro-strategist, fundamental-analyst, trader]
+work_budget:
+  max_turns: 12          # cap on take-turns rounds in `work`
+  max_tokens: 250000     # soft ceiling; chair wraps up when exceeded

@@ -84,7 +84,7 @@ Convention: keep the body a *persona*, not a task. The task is injected at runti
 
 ## 4. Council templates (the "shape")
 
-A template names the seats, the chair (synthesizer), and default budgets. These are the prebuilts — C-suite, engineering team, writing lab — and users can add their own to the library or just edit `.council/council.yaml` after convening.
+A template names the seats, the chair (synthesizer), and default budgets. These are the prebuilts — C-suite, engineering team, writing lab, hedge-fund team — and users can add their own to the library or just edit `.council/council.yaml` after convening.
 
 ```yaml
 # templates/engineering-team.yaml  ->  becomes .council/council.yaml on convene
@@ -180,7 +180,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 **Phase 1 — convene**
 - `plugin.json`, orchestrator skill, personality format, templates
 - `/council convene` writing `.council/` (council.yaml + seats/ + dirs)
-- the three prebuilt templates + ~12 personality files
+- the four prebuilt templates + the personality library
 
 **Phase 2 — meeting**
 - shared scratchpad under `.council/scratch/`

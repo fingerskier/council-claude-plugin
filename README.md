@@ -33,7 +33,7 @@ See [PLAN.md](./PLAN.md) for the full design.
 commands/council.md                  # slash-command entry
 skills/council-orchestrator/SKILL.md # the orchestrator: routing, protocols, synthesis
 personalities/*.md                   # the seat library (extensible)
-templates/*.yaml                     # preset compositions: c-suite, engineering-team, writing-lab
+templates/*.yaml                     # presets: c-suite, engineering-team, writing-lab, hedge-fund-team
 ```
 
 The council it creates lives under `.council/` in your working repo:
