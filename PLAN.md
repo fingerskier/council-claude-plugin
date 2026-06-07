@@ -38,10 +38,13 @@ council/
 ├── personalities/                       # the seat library (extensible)
 │   ├── ceo.md  cfo.md  cto.md  coo.md  chief-counsel.md
 │   ├── staff-engineer.md  security-engineer.md  qa-engineer.md  product-manager.md
+│   ├── engineering-manager.md  mechanical-engineer.md  electrical-engineer.md
+│   ├── firmware-engineer.md  application-engineer.md  infrastructure-engineer.md
 │   └── editor.md  line-editor.md  critic.md  researcher.md
 ├── templates/                           # preset compositions
+│   ├── software-team.yaml
+│   ├── product-engineering-team.yaml
 │   ├── c-suite.yaml
-│   ├── engineering-team.yaml
 │   └── writing-lab.yaml
 └── README.md
 ```
@@ -84,12 +87,12 @@ Convention: keep the body a *persona*, not a task. The task is injected at runti
 
 ## 4. Council templates (the "shape")
 
-A template names the seats, the chair (synthesizer), and default budgets. These are the prebuilts — C-suite, engineering team, writing lab, hedge-fund team — and users can add their own to the library or just edit `.council/council.yaml` after convening.
+A template names the seats, the chair (synthesizer), and default budgets. These are the prebuilts — software team, product engineering team, C-suite, writing lab, hedge-fund team — and users can add their own to the library or just edit `.council/council.yaml` after convening.
 
 ```yaml
-# templates/engineering-team.yaml  ->  becomes .council/council.yaml on convene
-name: engineering-team
-description: Technical design + review council
+# templates/software-team.yaml  ->  becomes .council/council.yaml on convene
+name: software-team
+description: Software design + review council
 chair: staff-engineer
 seats: [staff-engineer, security-engineer, qa-engineer, product-manager]
 work_budget:
@@ -111,7 +114,7 @@ The surface is three verbs. `convene` sets up; `meeting` and `work` put the coun
 
 Stamps a template into `.council/`. Idempotent: re-running **recreates** the council from the template. Steps:
 
-1. Pick the template (arg, or prompt from the library; default `engineering-team`).
+1. Pick the template (arg, or prompt from the library; default `software-team`).
 2. Create `.council/`, write `council.yaml`, copy each seat's personality into `.council/seats/`, scaffold empty `memory/`, `scratch/`, `records/`.
 3. If `.council/` already exists, confirm before overwriting (so hand-edits aren't lost without consent), or merge non-destructively.
 4. Tell the user the files are theirs to tweak.
@@ -180,7 +183,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 **Phase 1 — convene**
 - `plugin.json`, orchestrator skill, personality format, templates
 - `/council convene` writing `.council/` (council.yaml + seats/ + dirs)
-- the four prebuilt templates + the personality library
+- the five prebuilt templates + the personality library
 
 **Phase 2 — meeting**
 - shared scratchpad under `.council/scratch/`

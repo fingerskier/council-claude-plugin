@@ -1,0 +1,11 @@
+# Cross-disciplinary council for designing and shipping a physical product.
+# Mechanical, electrical, firmware, application, and infrastructure engineers
+# under an engineering manager who chairs.
+# Copied into .council/council.yaml by `/council convene product-engineering-team`.
+name: product-engineering-team
+description: Cross-disciplinary hardware/firmware/software product council
+chair: engineering-manager
+seats: [engineering-manager, mechanical-engineer, electrical-engineer, firmware-engineer, application-engineer, infrastructure-engineer]
+work_budget:
+  max_turns: 14          # cap on take-turns rounds in `work`
+  max_tokens: 300000     # soft ceiling; chair wraps up when exceeded

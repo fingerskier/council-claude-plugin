@@ -45,7 +45,7 @@ Create or recreate `.council/` from a template. No task runs.
 
 1. **Pick the template.** If the user gave a name, use it. Otherwise list the
    templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description`, and
-   ask which to use (default `engineering-team`).
+   ask which to use (default `software-team`).
 2. **Guard existing council.** If `.council/council.yaml` already exists, warn
    that recreating will overwrite the council files (the user may have
    hand-edited seats) and confirm before proceeding. Do not clobber without a

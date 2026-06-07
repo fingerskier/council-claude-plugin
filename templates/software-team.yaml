@@ -1,7 +1,7 @@
-# Technical design + review council. The default template for `convene`.
-# Copied into .council/council.yaml by `/council convene engineering-team`.
-name: engineering-team
-description: Technical design + review council
+# Software design + review council. The default template for `convene`.
+# Copied into .council/council.yaml by `/council convene software-team`.
+name: software-team
+description: Software design + review council
 chair: staff-engineer
 seats: [staff-engineer, security-engineer, qa-engineer, product-manager]
 work_budget:
