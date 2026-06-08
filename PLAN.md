@@ -66,7 +66,7 @@ council/
 ├── scratch/              # live shared scratchpads for meeting/work (ephemeral)
 │   └── <session-id>.md
 └── records/              # synthesized, durable outputs
-    └── <timestamp>-<slug>.md
+    └── <timestamp>-<slug>.md   # == the session id; record filename is the session id
 ```
 
 `.council/scratch/` is working memory for a single session; `.council/records/` is the permanent file the chair writes when a meeting or work session concludes. `.council/memory/` is the council's long-term context, readable by seats on later invocations — **one markdown file per topic** (not a single log). When a meeting or work session concludes, the chair creates or updates the relevant topic file with the decision and its *why*. A worked example of all three lives in `examples/sample-council/`.
