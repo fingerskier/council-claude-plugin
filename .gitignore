@@ -1,0 +1,8 @@
+# Stray artifacts from other tools / MCP servers (e.g. SKiDL/KiCad ERC runs)
+skidl.*
+*.log
+*.erc
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
