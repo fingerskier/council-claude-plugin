@@ -47,11 +47,17 @@ Create or recreate `.council/` from a template. No task runs.
    templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description`, and
    ask which to use (default `software-team`).
 2. **Guard existing council.** If `.council/council.yaml` already exists, warn
-   that recreating will overwrite the council files (the user may have
-   hand-edited seats) and confirm before proceeding. Do not clobber without a
-   yes.
-3. **Create the tree:** `.council/seats/`, `.council/memory/`,
-   `.council/scratch/`, `.council/records/`.
+   that recreating will overwrite **`council.yaml` and the `seats/` copies** (where
+   hand-edits live) and confirm before proceeding. Do not clobber without a yes.
+   Recreate is **scoped to those two**: it **never deletes `memory/`, `records/`,
+   or `scratch/`**. The council's accumulated memory and audit trail are its most
+   valuable, least-recreatable state, so a re-convene rebuilds the roster *around*
+   them — it does not reset the council. (Even a confirmed recreate leaves memory
+   and records intact; a user who truly wants a clean slate removes `.council/` by
+   hand.)
+3. **Create any missing tree dirs** — `mkdir -p`, never destructive:
+   `.council/seats/`, `.council/memory/`, `.council/scratch/`, `.council/records/`.
+   Existing `memory/` and `records/` content is left untouched (step 2).
 4. **Write `.council/council.yaml`** from the chosen template
    (`${CLAUDE_PLUGIN_ROOT}/templates/<name>.yaml`).
 5. **Copy the seats.** For each seat in the template's `seats:` list, copy
@@ -109,7 +115,9 @@ workers, no writes.
 
 A human-in-the-loop round-table. Seats speak in turn on a shared scratchpad; you
 the orchestrator pause each round for the user's input; the user concludes; the
-chair synthesizes. Seats are **read-only** (no worktree, no commits).
+chair synthesizes. Seats are **read-only** (no worktree, no commits) — and that
+read-only instruction is **injected into every meeting seat's prompt** (see
+*Spawning a seat*), not merely assumed.
 
 1. **Session id:** `<YYYYMMDD-HHMMSS>-<short-slug-of-task>`.
 2. **Open the scratchpad** `.council/scratch/<id>.md` with a header. Pin the
@@ -212,9 +220,14 @@ turn or two; a bounded implementation grinds for many.
 6. **Take-turns loop (chair-driven):**
    a. The **chair** reads the scratchpad and decides **who acts next** and the
       concrete sub-goal for this turn.
-   b. Spawn that seat as a worker with cwd in the worktree, the task, the
-      sub-goal, and the scratchpad. It may read/edit files and run commands in
-      the worktree. Append its turn to the scratchpad.
+   b. Spawn that seat as a worker (see *Spawning a seat*) with the task, the
+      sub-goal, and the scratchpad, pointed at the worktree by its **absolute
+      path** — the Task tool can't set the worker's cwd, so the worktree is named
+      in the prompt, not as a working directory. It may read/edit files and run
+      commands **under** the worktree. After it returns, **verify its edits landed
+      in the worktree, not the main tree**: `git -C .council/worktrees/<id> status`
+      should show the changes while the main working tree stays clean. Append its
+      turn to the scratchpad.
    c. The **chair** evaluates whether to continue. **Stop on whichever of these
       five fires first:**
       - **chair says done** — the task is genuinely complete;
@@ -241,21 +254,30 @@ turn or two; a bounded implementation grinds for many.
    per the pinned **memory topic** structure and **topic naming** rule). Run the
    **post-synthesis conformance check**, then **archive the scratchpad** — rename
    `.council/scratch/<id>.md` to `.council/records/<id>.scratch.md` (don't delete
-   it; it's the audit artifact Gate 1 is checked against). Then **commit** the
-   record, the archived scratch, and the memory files — the gates are defined over
+   it; it's the audit artifact Gate 1 is checked against).
+9. **Commit, in two places that don't cross.** The gates are defined over
    committed artifacts, so an uncommitted audit trail can't be verified from the
-   tree. (The record/memory live in the main `.council/`, not the worktree; commit
-   them on the branch you're handing back, or on `main` — but commit them.)
-9. **Declare done — do not auto-merge.** Leave the branch and worktree in place
-   and hand the user a summary plus the exact commands to merge when *they*
-   choose to, and to clean up:
-   ```
-   git merge --no-ff council/work-<id>
-   git worktree remove .council/worktrees/<id>
-   ```
-   The user owns the merge decision; the chair never lands changes on the
-   working tree itself.
-10. **Report** the outcome, the record path, and the merge status (always
+   tree — commit both halves, and keep them apart:
+   - **The task's file changes** stay **in the worktree, on the `council/work-<id>`
+     branch** (`git -C .council/worktrees/<id> add -A && git -C
+     .council/worktrees/<id> commit -m "<summary>"`). This is exactly what the
+     user's later `git merge --no-ff council/work-<id>` lands — the work isn't
+     mergeable until it's committed there.
+   - **The audit trail** (record + archived scratch + memory) lives in the **main**
+     `.council/`, not the worktree, and is committed **there, on the current
+     branch** — *not* on the work branch. Off the work branch, the record survives
+     whether or not the user ever merges, and the merge handoff stays purely about
+     the code.
+10. **Declare done — do not auto-merge.** Leave the branch and worktree in place
+    and hand the user a summary plus the exact commands to merge when *they*
+    choose to, and to clean up:
+    ```
+    git merge --no-ff council/work-<id>
+    git worktree remove .council/worktrees/<id>
+    ```
+    The user owns the merge decision; the chair never lands changes on the
+    working tree itself.
+11. **Report** the outcome, the record path, and the merge status (always
     deferred with instructions).
 
 ---
@@ -282,8 +304,14 @@ Shared scratchpad (the conversation so far — read it before you speak):
 
 Task: {the user's task}
 {For work turns, also: "This turn's sub-goal (assigned by the chair): ..."}
-{For work, also: "Your working directory is the git worktree at
- .council/worktrees/<id>; make any file changes there."}
+{For work, also: "All your file work happens in the git worktree at the absolute
+ path .council/worktrees/<id>/ — treat that subtree as the project root. The Task
+ tool does not change your working directory, so address every read, edit, and
+ command at a path *under* that worktree; do not touch files outside it. Report the
+ paths you changed so the chair can confirm they landed in the worktree."}
+{For meeting, also: "This is a meeting and you are read-only: contribute analysis
+ and prose only — do not edit files, run state-mutating commands, or commit.
+ Filesystem changes are a `work` session's job, never a meeting's."}
 
 Respond as this seat, building on the scratchpad rather than repeating it. Be
 concise and stay in your lane.

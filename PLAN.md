@@ -41,13 +41,15 @@ council/
 │   ├── engineering-manager.md  mechanical-engineer.md  electrical-engineer.md
 │   ├── firmware-engineer.md  application-engineer.md  infrastructure-engineer.md
 │   ├── founder-operator.md  customer-advocate.md  growth-marketer.md  legal-risk-advisor.md
-│   └── editor.md  line-editor.md  critic.md  researcher.md
+│   ├── editor.md  line-editor.md  critic.md  researcher.md
+│   └── portfolio-manager.md  quant-analyst.md  risk-manager.md  macro-strategist.md  fundamental-analyst.md  trader.md
 ├── templates/                           # preset compositions
 │   ├── software-team.yaml
 │   ├── product-engineering-team.yaml
 │   ├── c-suite.yaml
 │   ├── solo-founder.yaml
-│   └── writing-lab.yaml
+│   ├── writing-lab.yaml
+│   └── hedge-fund-team.yaml
 ├── examples/                            # reference snapshot of a convened .council/
 │   └── sample-council/                  # docs only — pins the on-disk formats
 └── README.md
@@ -125,8 +127,8 @@ The surface is four verbs. `convene` sets up; `info` reports the roster; `meetin
 Stamps a template into `.council/`. Idempotent: re-running **recreates** the council from the template. Steps:
 
 1. Pick the template (arg, or prompt from the library; default `software-team`).
-2. Create `.council/`, write `council.yaml`, copy each seat's personality into `.council/seats/`, scaffold empty `memory/`, `scratch/`, `records/`.
-3. If `.council/` already exists, confirm before overwriting (so hand-edits aren't lost without consent), or merge non-destructively.
+2. Create `.council/`, write `council.yaml`, copy each seat's personality into `.council/seats/`, scaffold `memory/`, `scratch/`, `records/` (empty on a first convene; left as-is if they already hold content).
+3. If `.council/` already exists, confirm before overwriting `council.yaml` + `seats/` (so hand-edits aren't lost without consent). Recreate is scoped to those two — `memory/`, `records/`, and `scratch/` are preserved, never wiped (decision #1).
 4. Tell the user the files are theirs to tweak.
 
 No task runs. This is pure setup — the council only does work via the other verbs.
@@ -208,6 +210,15 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 
 ## 9. MVP and phasing
 
+> **How the phases actually landed.** The MVP front-loaded most of the runtime —
+> the four verbs, the shared scratchpad, and the synthesis→record/memory path all
+> shipped early (the `MVP` / Phase-0 / Phase-1 commits). Phases 2–4 therefore ran
+> largely as **spec-hardening passes** over that front-loaded base: pinning the
+> record/memory formats, closing named-but-unfireable budget guardrails, and making
+> the conformance gates mechanical — not greenfield verb builds. Read each phase
+> header below as the conformance/feature scope that pass *closed*, not as the point
+> the verb was first written.
+
 **Phase 0 — scaffolding & decisions** *(this phase)*
 - worked example of a convened council under `examples/sample-council/` pinning the memory / scratch / record formats
 - `/council info` specified (read-only roster table)
@@ -239,7 +250,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 
 ## 10. Resolved decisions
 
-1. **`convene` recreate semantics → confirm-then-overwrite.** On an existing `.council/`, warn and require a yes, then recreate from the template. Non-destructive three-way merge of hand-edits is deferred to Phase 4.
+1. **`convene` recreate semantics → confirm-then-overwrite.** On an existing `.council/`, warn and require a yes, then recreate from the template. Recreate is **scoped to `council.yaml` + `seats/`** (where hand-edits live); it **never deletes `memory/`, `records/`, or `scratch/`** — the accumulated memory and audit trail survive a re-convene. Non-destructive three-way merge of hand-edits is deferred to Phase 4.
 2. **Seat selection → no selection in `meeting`.** `meeting` always runs **all** convened seats (the whole table is the point). `work` keeps chair-selects-the-relevant-subset, since an autonomous run shouldn't pay for irrelevant voices.
 3. **`work` stop triggers → any of five.** The run stops on whichever comes first: **chair says done**, **budget exceeded** (`max_turns`), **scratchpad size limit** (`scratch_max_bytes`), **wall-clock** (`max_wall_seconds`, optional — armed only when set `> 0`, checked at turn boundaries), or **user requests stop**.
 4. **Worktree merge → chair declares done, user asks for merge.** No auto-merge. The chair finishes, leaves the branch/worktree in place, and the user merges when ready (the chair hands over the commands).
