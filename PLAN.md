@@ -41,13 +41,15 @@ council/
 │   ├── engineering-manager.md  mechanical-engineer.md  electrical-engineer.md
 │   ├── firmware-engineer.md  application-engineer.md  infrastructure-engineer.md
 │   ├── founder-operator.md  customer-advocate.md  growth-marketer.md  legal-risk-advisor.md
-│   └── editor.md  line-editor.md  critic.md  researcher.md
+│   ├── editor.md  line-editor.md  critic.md  researcher.md
+│   └── portfolio-manager.md  quant-analyst.md  risk-manager.md  macro-strategist.md  fundamental-analyst.md  trader.md
 ├── templates/                           # preset compositions
 │   ├── software-team.yaml
 │   ├── product-engineering-team.yaml
 │   ├── c-suite.yaml
 │   ├── solo-founder.yaml
-│   └── writing-lab.yaml
+│   ├── writing-lab.yaml
+│   └── hedge-fund-team.yaml
 ├── examples/                            # reference snapshot of a convened .council/
 │   └── sample-council/                  # docs only — pins the on-disk formats
 └── README.md
@@ -207,6 +209,15 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 - **Model/effort (v1):** seats and the chair all run on the **user's current default model/effort** — the orchestrator does not set per-seat models in the first version (see §3). Per-seat model routing is **declined** (the user cut it in Phase 4); the `model:`/`tools:` fields are preserved purely as forward-looking documentation and no phase currently enforces them. A long `work` run can still burn far more tokens than a normal session — `work_budget` in `council.yaml` is the explicit guardrail: `max_turns` and `scratch_max_bytes` are the hard stops (turn count and byte size are measured exactly). There is deliberately **no token cap**: the orchestrator has no reliable per-turn token count, so a token budget couldn't fire — `max_turns` bounds run length, and token spend rides along with it.
 
 ## 9. MVP and phasing
+
+> **How the phases actually landed.** The MVP front-loaded most of the runtime —
+> the four verbs, the shared scratchpad, and the synthesis→record/memory path all
+> shipped early (the `MVP` / Phase-0 / Phase-1 commits). Phases 2–4 therefore ran
+> largely as **spec-hardening passes** over that front-loaded base: pinning the
+> record/memory formats, closing named-but-unfireable budget guardrails, and making
+> the conformance gates mechanical — not greenfield verb builds. Read each phase
+> header below as the conformance/feature scope that pass *closed*, not as the point
+> the verb was first written.
 
 **Phase 0 — scaffolding & decisions** *(this phase)*
 - worked example of a convened council under `examples/sample-council/` pinning the memory / scratch / record formats

@@ -5,6 +5,11 @@ sessions. It is **documentation, not runtime** — nothing reads it. Its purpose
 to pin down the on-disk formats so the orchestrator and any contributor agree on
 what these files look like.
 
+The records reference code, tests, and decisions (`src/util/retry.ts`, a BullMQ
+adoption, a faked-clock test, and so on) that are **illustrative fixtures** — they
+exist in no repo. They're here only to show the *shape* of a real record, not to
+describe work that was actually done.
+
 ```
 sample-council/
 ├── council.yaml                              # the active council (from a template)
