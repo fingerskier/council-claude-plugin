@@ -84,15 +84,15 @@ workers, no writes.
 1. **Preflight** as above — if `.council/council.yaml` is missing, tell the user
    to `convene` first and stop.
 2. **Read the roster.** From `council.yaml` take `name`, `chair`, the `seats`
-   list, and `work_budget`. For each seat, read the frontmatter of
-   `.council/seats/<seat>.md` for its `title` and `voice`.
+   list, `work_budget`, and the optional `memory_budget`. For each seat, read the
+   frontmatter of `.council/seats/<seat>.md` for its `title` and `voice`.
 3. **Print a table** — one row per seat, in `council.yaml` order, with the chair
    marked. Columns: seat (the `name`), title, voice. Head it with the council
    name, the chair, and the budget. For example:
 
    ```
    Council: software-team — chair: staff-engineer
-   Budget: max_turns 12 · scratch 200k
+   Budget: max_turns 12 · scratch 200k · memory 8k
 
      Seat                Title                Voice                         Chair
      ──────────────────  ───────────────────  ────────────────────────────  ─────
@@ -104,10 +104,12 @@ workers, no writes.
 
    Pull `title`/`voice` straight from each seat's frontmatter; if a field is
    absent, leave it blank. **Omit budget fields the council doesn't set** — this
-   includes the optional `max_wall_seconds`: render it (e.g. append ` · wall 1800s`)
-   **only when it is present** in `work_budget`, and leave it out entirely when
-   unset (the example above sets no `max_wall_seconds`, so the banner shows none).
-   Keep it to the table plus the header — no commentary unless the user asks.
+   includes the optional `max_wall_seconds` (render it, e.g. append ` · wall 1800s`,
+   **only when present** in `work_budget`) and the optional
+   `memory_budget.manifest_max_bytes` (append ` · memory 8k` **only when set `> 0`**).
+   The example above sets no `max_wall_seconds`, so the banner omits it; it does set
+   `memory_budget` (the default templates do), so ` · memory 8k` shows. Keep it to the
+   table plus the header — no commentary unless the user asks.
 
 ---
 
@@ -296,8 +298,9 @@ voice, and judgment — and respond in character.
 {contents of .council/seats/<seat>.md, body below the frontmatter}
 </persona>
 
-Council memory (durable context from past sessions):
-{contents of all .council/memory/*.md topic files concatenated in filename (lexical) order, each under its own heading, or "none yet"}
+Council memory — manifest (durable context from past sessions; a pointer index,
+not the content — one line per topic, newest-updated first):
+{the memory manifest — built per "Memory injection (two-tier)" below — or "none yet"}
 
 Shared scratchpad (the conversation so far — read it before you speak):
 {current contents of .council/scratch/<id>.md}
@@ -312,6 +315,12 @@ Task: {the user's task}
 {For meeting, also: "This is a meeting and you are read-only: contribute analysis
  and prose only — do not edit files, run state-mutating commands, or commit.
  Filesystem changes are a `work` session's job, never a meeting's."}
+{Always, re: memory — "The memory block above is a manifest of pointers, not
+ content. Before you rely on any topic — its decision, constraints, or standing
+ dissent — Read its full file at the path shown (for work it lives under the main
+ repo's .council/memory/, whose absolute path is given above). Never infer a topic's
+ content from its one-line summary; a topic's standing dissent is not in the manifest
+ at all. Reading is non-mutating, so it is allowed in a read-only meeting too."}
 
 Respond as this seat, building on the scratchpad rather than repeating it. Be
 concise and stay in your lane.
@@ -325,6 +334,49 @@ enforces it.) The **chair** is spawned the same
 way as any seat, but its task is to *route* (pick who's next / decide done) or to
 *synthesize* (unified recommendation + dissents) rather than to give one more
 opinion.
+
+### Memory injection (two-tier)
+
+Memory is injected as a **bounded manifest of pointers**, never the whole corpus.
+Concatenating every `.council/memory/*.md` body into every spawn grew without bound
+as topics accumulated and was re-paid on every seat and every turn. A manifest keeps
+the always-injected slice small **without sacrificing recall** — every topic is still
+listed, and any seat can open any file it needs.
+
+**Build the manifest.** One line per topic file in `.council/memory/`, ordered
+most-recently-updated first (file mtime, or the newest `→ record:` back-link in the
+file), each line:
+
+```
+- `memory/<topic>.md` — <title: the text after "# Memory:"> — <the first non-empty
+  line under that file's `## Decision`>
+```
+
+With no topic files, the manifest is the literal `none yet`.
+
+**Read on demand, don't guess.** The manifest is an index, not the content. A seat or
+the chair that needs a topic **Reads its full file before relying on it** — it never
+infers a decision, constraint, or standing dissent from the one-line summary. A
+topic's `## Standing dissent` is deliberately *not* in the manifest, so the summary is
+never a safe substitute for the file. Reads are non-mutating, so they are permitted in
+a read-only `meeting`. For `work`, topic files live in the **main** `.council/memory/`,
+not the worktree — give the worker the absolute path, the same way you give it the
+worktree path.
+
+**Bound it with `memory_budget` (optional).** In `council.yaml`:
+
+```yaml
+memory_budget:
+  manifest_max_bytes: 8000   # cap on the injected manifest; unset/0 = uncapped
+```
+
+Armed only when set `> 0` (mirrors `max_wall_seconds`: absent, `0`, or negative = off).
+When the manifest would exceed the cap, inject the newest-updated topics up to the cap
+and append one final line — `- (+N older topics — list .council/memory/ and Read as
+needed)` — so the remainder stays **discoverable rather than silently dropped**.
+Uncapped, the whole manifest goes in; at one short line per topic it is bounded by
+topic count, which itself grows sub-linearly because topics are reused and updated
+(per the **topic naming** rule below), not spawned per session.
 
 ## Synthesis contract (the chair's output)
 
