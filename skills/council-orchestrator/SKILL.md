@@ -147,8 +147,10 @@ chair synthesizes. Seats are **read-only** (no worktree, no commits).
    topic the session touched, create or update `.council/memory/<topic>.md`
    (pinned **memory topic** structure; follow the **topic naming** rule) with the
    decision and its *why* (short, not a transcript). Run the **post-synthesis
-   conformance check** before continuing. Remove the scratchpad (its content now
-   lives in the record).
+   conformance check** before continuing, then **archive the scratchpad** — rename
+   `.council/scratch/<id>.md` to `.council/records/<id>.scratch.md`. Do **not**
+   delete it: it's the audit artifact Gate 1 is checked against, and a future
+   review can re-verify that no dissent was flattened only if it survives.
 7. **Report** the synthesis to the user and point at the record file.
 
 ---
@@ -192,7 +194,9 @@ turn or two; a bounded implementation grinds for many.
    **record file** structure (*Synthesis contract* below; `Mode: work`); fold
    takeaways into memory **by topic** (create/update `.council/memory/<topic>.md`
    per the pinned **memory topic** structure and **topic naming** rule). Run the
-   **post-synthesis conformance check**, then remove the scratchpad.
+   **post-synthesis conformance check**, then **archive the scratchpad** — rename
+   `.council/scratch/<id>.md` to `.council/records/<id>.scratch.md` (don't delete
+   it; it's the audit artifact Gate 1 is checked against).
 9. **Declare done — do not auto-merge.** Leave the branch and worktree in place
    and hand the user a summary plus the exact commands to merge when *they*
    choose to, and to clean up:
@@ -296,9 +300,17 @@ session, distinct from the slug. Concrete template (see
 ```
 
 The six bold fields are all required and in this order. `Mode` is `meeting` or
-`work`. `Concluded` uses `YYYY-MM-DD HH:MM`. Each follow-up owner is a seat name
-from `council.yaml`. The trailing line cross-links every memory topic this
-session wrote (one line per topic).
+`work`. `Concluded` uses `YYYY-MM-DD HH:MM`. Each follow-up owner is a **full
+seat name** from `council.yaml` (e.g. `qa-engineer`, not `qa`), or the literal
+`user` for a handoff the council defers to the human (e.g. the merge decision).
+
+The trailing `→ memory updated:` cross-links every memory topic this session
+wrote, **one line per topic**:
+- **One topic:** a single line, `→ memory updated: \`memory/<topic>.md\``.
+- **Several topics:** one `→ memory updated:` line each, in any order.
+- **No durable memory:** exactly one line, `→ memory updated: none`, so the
+  absence is explicit rather than a forgotten line (Gate 2 can tell "wrote
+  nothing" from "dropped the line").
 
 ### Memory topic file (`memory/<topic>.md`)
 
@@ -324,8 +336,20 @@ short: decisions and their *why*, **never a transcript**. Concrete template (see
 <a dissent that should travel with this topic, if any — else omit the section.>
 ```
 
-`## Decision` and `## Why` are both **required**. `## Decision` ends with a
-`→ record: \`records/<id>.md\`` back-link to the session that set it.
+`## Decision` and `## Why` are both **required**. `## Decision` ends with one or
+more `→ record:` back-links. Each back-link's target is **either** a backticked
+`records/<id>.md` path **or** the bare literal `STANDING` (for a standing
+practice no single session set) — **never free prose** — optionally followed by a
+short parenthetical note. This enum is what makes Gate 2 mechanically checkable:
+extract the backticked path (or recognize `STANDING`), assert the file exists and
+names this topic back.
+
+**Back-links accrue into a history.** When a later session revises this topic,
+**append a new `→ record:` line** (newest last) rather than overwriting the
+prior one — the back-links form the topic's record history, mirroring the
+reuse-don't-duplicate rule for topic files. (Overwriting would silently dangle
+the earlier record's `→ memory updated:` closure.)
+
 `## Why` carries reasons, not transcript: **no `## Round N` headings and no
 turn-by-turn conversation belong in memory** — that content stays in the record.
 
@@ -337,24 +361,35 @@ the decision** — not the task phrasing, not the session slug, and no dates.
 tests → `testing-standards`.) Before creating one, **list the existing
 `memory/*.md` files and reuse the file if the subject already has one**;
 otherwise create a new file. Updating an existing topic keeps its history and
-adds the new decision rather than spawning a near-duplicate file.
+adds the new decision rather than spawning a near-duplicate file — append a new
+`→ record:` back-link for the updating session (newest last); never overwrite the
+prior link.
 
 ### Post-synthesis conformance check
 
-Two hard gates. **Both MUST pass before you remove the scratchpad** — these catch
-the silent failures a skim would miss:
+Two hard gates. **Both MUST pass before you archive the scratchpad** — run them
+*while the scratchpad still exists*, since Gate 1 is checked against it. These
+catch the silent failures a skim would miss:
 
 1. **Dissents preserved, not flattened.** The record has a literal
    `## Dissents (preserved)` section, and every dissent recorded in the
    scratchpad survives there in its seat's own voice — not summarized away into
    the recommendation. (If there were genuinely no dissents, the section says so
-   explicitly rather than being dropped.)
-2. **Cross-link closure (bidirectional).** The record's `→ memory updated:` line
-   names every topic file written, **and** each of those topic files'
-   `## Decision` carries a `→ record:` back-link to this record. Both directions
-   must close.
+   explicitly rather than being dropped.) Because the scratchpad is **archived,
+   not deleted** (`records/<id>.scratch.md`), this gate stays re-checkable after
+   the fact — a later review can diff the record's dissents against the archived
+   scratchpad.
+2. **Cross-link closure (bidirectional), mechanically.** The record's
+   `→ memory updated:` lines name every topic file written (or the single literal
+   `none` if it wrote none), **and** each named topic file's `## Decision` carries
+   a `→ record:` back-link to this record. Every `→ record:` value is a backticked
+   `records/<id>.md` path or the literal `STANDING` — never free prose — so this
+   gate is a script, not a skim: for each `→ memory updated: memory/X.md`, assert
+   `memory/X.md` exists and one of its `→ record:` lines is this record; for each
+   topic's `→ record: records/Y.md`, assert `records/Y.md` lists that topic. Both
+   directions must close.
 
 The templates above already pin the rest — field order, prose H1, the `Concluded`
-`YYYY-MM-DD HH:MM` format, the section names, kebab topic naming, no transcript in
-memory. Follow the templates; don't re-grade each formatting detail as its own
-checkbox.
+`YYYY-MM-DD HH:MM` format, the section names, full-seat-name owners, kebab topic
+naming, the `→ record:` enum, no transcript in memory. Follow the templates;
+don't re-grade each formatting detail as its own checkbox.
