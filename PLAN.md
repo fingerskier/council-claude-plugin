@@ -109,6 +109,8 @@ seats: [staff-engineer, security-engineer, qa-engineer, product-manager]
 work_budget:
   max_turns: 12          # hard cap on take-turns rounds in `work`
   scratch_max_bytes: 200000  # hard stop trigger: halt `work` if the scratchpad grows past this
+memory_budget:
+  manifest_max_bytes: 8000   # cap on the memory manifest injected into each spawn; unset/0 = uncapped
 ```
 
 ## 5. The commands
@@ -139,7 +141,7 @@ Read-only introspection of the convened council — no session, no spawn. The or
 
 ```
 Council: software-team — chair: staff-engineer
-Budget: max_turns 12 · scratch 200k
+Budget: max_turns 12 · scratch 200k · memory 8k
 
   Seat                Title                       Voice                        Chair
   ──────────────────  ──────────────────────────  ───────────────────────────  ─────
@@ -179,7 +181,7 @@ This scales: a quick gut-check resolves in a turn or two and reads like a fast m
 ### Shared mechanics
 
 - **Scratchpad:** `meeting` and `work` both use `.council/scratch/<session-id>.md` as the shared, append-only conversation seats read before speaking. Deleted or archived to `records/` at session end.
-- **Memory:** both may read `.council/memory/` for council context, and append durable takeaways on conclusion.
+- **Memory:** both read `.council/memory/` for council context — a bounded *manifest* of pointers (one line per topic) is injected at spawn and seats Read the full topic file on demand (see SKILL *Memory injection (two-tier)*) — and both append durable takeaways on conclusion.
 - **Records:** both write a synthesis to `.council/records/` when the session concludes.
 
 ## 6. Isolation and the worktree
@@ -243,7 +245,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 - chair declares done and hands off; **user asks for the merge** (#4); record + per-topic memory write-back
 
 **Phase 4 — polish**
-- `.council/memory/` read-back across sessions — **delivered** (memory is injected into every seat and the chair at spawn; Phase 4 pins the concatenation order so read-back is deterministic).
+- `.council/memory/` read-back across sessions — **delivered** (memory is injected into every seat and the chair at spawn). Injection is **two-tier**: a bounded *manifest* of pointers — one line per topic (title + one-line decision + path), newest-updated first — goes into every spawn, and seats Read the full topic file on demand; an optional `memory_budget.manifest_max_bytes` caps the manifest. This **superseded** the original "concatenate every topic body into every spawn" (and its lexical-order patch), which grew without bound as topics accumulated and was re-paid on every seat and turn.
 - `max_wall_seconds` wall-clock/timeout budget — **delivered** (a fifth, optional `work` stop trigger; armed only when set `> 0`; measured at turn boundaries against a `date +%s` epoch recorded at session open; absent/0/negative = unarmed).
 - ~~per-seat model routing (re-enables the `model:` field deferred in v1)~~ — **declined:** no per-seat routing; v1 default-model policy stands.
 - ~~recreate-safety for `convene` (non-destructive merge of hand-edits)~~ — **deferred:** confirm-then-overwrite (decision #1) is sufficient until a user loses hand-edits in practice.
@@ -254,7 +256,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 2. **Seat selection → no selection in `meeting`.** `meeting` always runs **all** convened seats (the whole table is the point). `work` keeps chair-selects-the-relevant-subset, since an autonomous run shouldn't pay for irrelevant voices.
 3. **`work` stop triggers → any of five.** The run stops on whichever comes first: **chair says done**, **budget exceeded** (`max_turns`), **scratchpad size limit** (`scratch_max_bytes`), **wall-clock** (`max_wall_seconds`, optional — armed only when set `> 0`, checked at turn boundaries), or **user requests stop**.
 4. **Worktree merge → chair declares done, user asks for merge.** No auto-merge. The chair finishes, leaves the branch/worktree in place, and the user merges when ready (the chair hands over the commands).
-5. **Memory → one MD file per topic.** Not an append-only log. After a meeting or work session, the chair creates or updates the appropriately named topic file under `.council/memory/`. (Structured/queryable memory remains a possible later evolution.)
+5. **Memory → one MD file per topic.** Not an append-only log. After a meeting or work session, the chair creates or updates the appropriately named topic file under `.council/memory/`. Injection is **two-tier** — a bounded manifest of pointers into every spawn, full files Read on demand (see SKILL *Memory injection (two-tier)*; optional `memory_budget.manifest_max_bytes`) — so memory stays cheap to carry as topics accumulate without dropping any from view. (A semantic index over memory — embeddings + a vector store such as FAISS or libsql — was weighed and **declined**: it forfeits the plugin's zero-code property, adds a stale-by-construction derived artifact over user-edited, git-tracked files, and trades away the full recall a council's small, high-value memory depends on. Structured/queryable memory remains a possible later evolution only if a real council outgrows the manifest — and even then libsql/sqlite-vec over FAISS, with markdown staying source of truth.)
 
 ---
 
