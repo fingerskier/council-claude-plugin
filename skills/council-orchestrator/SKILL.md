@@ -97,8 +97,11 @@ workers, no writes.
    ```
 
    Pull `title`/`voice` straight from each seat's frontmatter; if a field is
-   absent, leave it blank. Omit budget fields the council doesn't set. Keep it to
-   the table plus the header — no commentary unless the user asks.
+   absent, leave it blank. **Omit budget fields the council doesn't set** — this
+   includes the optional `max_wall_seconds`: render it (e.g. append ` · wall 1800s`)
+   **only when it is present** in `work_budget`, and leave it out entirely when
+   unset (the example above sets no `max_wall_seconds`, so the banner shows none).
+   Keep it to the table plus the header — no commentary unless the user asks.
 
 ---
 
@@ -185,6 +188,7 @@ turn or two; a bounded implementation grinds for many.
    - **Task:** <the task>
    - **Session:** <id>
    - **Started:** <YYYY-MM-DD HH:MM>
+   - **Started (epoch):** <output of `date +%s` at session open — the machine clock the wall-clock trigger reads; do not derive elapsed time from the human `Started` field>
    - **Chair:** <chair seat name>
    - **Seats (chair-selected subset — work does not run all seats):** <comma-separated seat names>
 
@@ -193,8 +197,15 @@ turn or two; a bounded implementation grinds for many.
    Then each turn is appended under a `## Turn N — <seat>` heading (work is
    chair-routed turns, not rounds, and there is **no** user-input section).
 4. **Read the budget** from `council.yaml` `work_budget` (`max_turns`,
-   `scratch_max_bytes`). Both are hard stops you can measure exactly — track turns
-   taken and the scratchpad byte size as you go. (There is no token cap: the
+   `scratch_max_bytes`, and the **optional** `max_wall_seconds`). `max_turns` and
+   `scratch_max_bytes` are hard stops you can measure exactly — track turns taken
+   and the scratchpad byte size as you go. For `max_wall_seconds`: record
+   `date +%s` at session open into the header `**Started (epoch):**` field, and at
+   each turn boundary compare a fresh `date +%s` against it. It is **armed only
+   when present and > 0** — `absent | 0 | negative → unarmed` (absence is the
+   off-switch; most councils don't set it). It is honest only at **turn-boundary
+   granularity**: a long turn can overshoot the target, because it bounds when the
+   *next* turn starts, not a mid-turn cut. (There is no token cap: the
    orchestrator has no reliable per-turn token count, so a token budget couldn't
    fire — `max_turns` bounds how long a run goes; token spend rides along with it.)
 5. **Chair selects seats** relevant to the task; record in the scratchpad.
@@ -205,13 +216,21 @@ turn or two; a bounded implementation grinds for many.
       sub-goal, and the scratchpad. It may read/edit files and run commands in
       the worktree. Append its turn to the scratchpad.
    c. The **chair** evaluates whether to continue. **Stop on whichever of these
-      four fires first:**
+      five fires first:**
       - **chair says done** — the task is genuinely complete;
       - **budget** — `max_turns` reached: a hard stop, a turn count you track
         exactly. (This is the run-length cap; there is no separate token cap —
         see step 4.);
       - **scratchpad size** — the scratchpad has grown past `scratch_max_bytes`
         (a hard stop: byte size is measured exactly);
+      - **wall-clock** — `max_wall_seconds` is set and `now − Started(epoch) ≥
+        max_wall_seconds`, where `now` is `date +%s` read at this turn boundary
+        and `Started(epoch)` is the `date +%s` recorded in the scratchpad header
+        at session open. A hard stop measured exactly — but **only at turn
+        boundaries**: it bounds when the *next* turn starts, not a mid-turn
+        interrupt, so a turn already running finishes first and total time can
+        overshoot the budget by up to one turn's duration. **Unarmed** when the
+        field is absent, `0`, or negative;
       - **user stop** — the user asked to halt the run.
       Otherwise, loop.
 7. **Synthesize:** spawn the chair over the full scratchpad + memory to produce
@@ -256,7 +275,7 @@ voice, and judgment — and respond in character.
 </persona>
 
 Council memory (durable context from past sessions):
-{concatenated contents of all .council/memory/*.md topic files, or "none yet"}
+{contents of all .council/memory/*.md topic files concatenated in filename (lexical) order, each under its own heading, or "none yet"}
 
 Shared scratchpad (the conversation so far — read it before you speak):
 {current contents of .council/scratch/<id>.md}
@@ -273,7 +292,8 @@ concise and stay in your lane.
 **Model/effort (v1):** do **not** set a per-seat model. Every seat and the chair
 run on the user's current default model/effort. A seat's `model:` and `tools:`
 frontmatter are documentation for now — preserve them, don't enforce them. (Per-
-seat model routing for cost is a later phase.) The **chair** is spawned the same
+seat model routing for cost is declined — see PLAN §9; no phase currently
+enforces it.) The **chair** is spawned the same
 way as any seat, but its task is to *route* (pick who's next / decide done) or to
 *synthesize* (unified recommendation + dissents) rather than to give one more
 opinion.

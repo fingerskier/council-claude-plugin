@@ -92,7 +92,7 @@ assumption that would have to be true for this to pay off. Be terse.
 
 Convention: keep the body a *persona*, not a task. The task is injected at runtime. Once convened, these live in `.council/seats/` and the user edits them freely.
 
-> **v1 model/effort policy.** The orchestrator does **not** manage per-seat models or effort in the first version — every seat (and the chair) runs on the user's current default model/effort. The `model:` and `tools:` fields are accepted and preserved as forward-looking documentation but are *not* enforced yet. Per-seat model routing for cost is deferred to a later phase (see §9 Phase 4). This keeps the orchestrator simple and avoids fighting the user's session settings.
+> **v1 model/effort policy.** The orchestrator does **not** manage per-seat models or effort in the first version — every seat (and the chair) runs on the user's current default model/effort. The `model:` and `tools:` fields are accepted and preserved as forward-looking documentation but are *not* enforced yet. Per-seat model routing for cost is **declined** — the user cut it in Phase 4, so no phase currently enforces it (see §8, §9 Phase 4). This keeps the orchestrator simple and avoids fighting the user's session settings.
 
 ## 4. Council templates (the "shape")
 
@@ -169,7 +169,7 @@ The **autonomous** mode, and the council's only work verb that runs unattended. 
 This scales: a quick gut-check resolves in a turn or two and reads like a fast multi-perspective answer; a bounded implementation grinds across many turns. Same verb, the chair just runs the loop as long as the task warrants.
 
 - Runs in a **git worktree** (see §6) so filesystem changes are isolated.
-- Stops on **any** of four triggers (decision #3): **the chair says done**, a **budget exceeded** (`max_turns`, the hard turn-count cap from `council.yaml` — there is no token cap, since the orchestrator can't reliably count tokens), the **scratchpad grows past its size limit** (`scratch_max_bytes`), or the **user asks it to stop**.
+- Stops on **any** of five triggers (decision #3): **the chair says done**, a **budget exceeded** (`max_turns`, the hard turn-count cap from `council.yaml` — there is no token cap, since the orchestrator can't reliably count tokens), the **scratchpad grows past its size limit** (`scratch_max_bytes`), the **wall-clock budget is reached** (`max_wall_seconds`, optional and armed only when set `> 0` — checked at turn boundaries against a `date +%s` epoch recorded at session open), or the **user asks it to stop**.
 - On finish, the chair **synthesizes** the outcome and **records** it to `.council/records/`. The chair does **not** auto-merge: it **declares the work done and leaves the worktree branch in place**; the **user asks for the merge** when they're ready (decision #4). The chair hands over the exact merge/cleanup commands.
 
 - Use for: anything from a quick breadth scan to a bounded implementation/refactor/research task you want the council to grind on unattended.
@@ -204,7 +204,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 - **Interactive (primary):** the orchestrator skill drives Task-tool subagents, building each worker's prompt from `.council/seats/<seat>.md` + injected task + the shared scratchpad. Sequential turn-taking for both `meeting` and `work`.
 - **Chair as router:** the chair selects which seats are relevant, picks who acts each turn, and decides termination (in `work`) or synthesizes on the user's call (in `meeting`). The chair is itself a seat (a personality file), so its routing/synthesis voice is tunable.
 - **Headless/SDK:** emit an `--agents` JSON object keyed by seat name, each personality body as the `prompt`. Same files, two delivery paths.
-- **Model/effort (v1):** seats and the chair all run on the **user's current default model/effort** — the orchestrator does not set per-seat models in the first version (see §3). The `model:` field is preserved as documentation for a later cost-routing phase (§9 Phase 4). A long `work` run can still burn far more tokens than a normal session — `work_budget` in `council.yaml` is the explicit guardrail: `max_turns` and `scratch_max_bytes` are the hard stops (turn count and byte size are measured exactly). There is deliberately **no token cap**: the orchestrator has no reliable per-turn token count, so a token budget couldn't fire — `max_turns` bounds run length, and token spend rides along with it.
+- **Model/effort (v1):** seats and the chair all run on the **user's current default model/effort** — the orchestrator does not set per-seat models in the first version (see §3). Per-seat model routing is **declined** (the user cut it in Phase 4); the `model:`/`tools:` fields are preserved purely as forward-looking documentation and no phase currently enforces them. A long `work` run can still burn far more tokens than a normal session — `work_budget` in `council.yaml` is the explicit guardrail: `max_turns` and `scratch_max_bytes` are the hard stops (turn count and byte size are measured exactly). There is deliberately **no token cap**: the orchestrator has no reliable per-turn token count, so a token budget couldn't fire — `max_turns` bounds run length, and token spend rides along with it.
 
 ## 9. MVP and phasing
 
@@ -228,19 +228,20 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 **Phase 3 — work**
 - autonomous take-turns with chair routing + termination
 - worktree isolation, budget guardrails (`max_turns`/`scratch_max_bytes`)
-- four stop triggers — chair-done / budget / scratch-size / user-stop (#3)
+- four stop triggers — chair-done / budget / scratch-size / user-stop (#3) (Phase 4 adds the fifth, `max_wall_seconds`; see below)
 - chair declares done and hands off; **user asks for the merge** (#4); record + per-topic memory write-back
 
 **Phase 4 — polish**
-- `.council/memory/` read-back across sessions
-- per-seat model routing (re-enables the `model:` field deferred in v1)
-- recreate-safety for `convene` (non-destructive merge of hand-edits)
+- `.council/memory/` read-back across sessions — **delivered** (memory is injected into every seat and the chair at spawn; Phase 4 pins the concatenation order so read-back is deterministic).
+- `max_wall_seconds` wall-clock/timeout budget — **delivered** (a fifth, optional `work` stop trigger; armed only when set `> 0`; measured at turn boundaries against a `date +%s` epoch recorded at session open; absent/0/negative = unarmed).
+- ~~per-seat model routing (re-enables the `model:` field deferred in v1)~~ — **declined:** no per-seat routing; v1 default-model policy stands.
+- ~~recreate-safety for `convene` (non-destructive merge of hand-edits)~~ — **deferred:** confirm-then-overwrite (decision #1) is sufficient until a user loses hand-edits in practice.
 
 ## 10. Resolved decisions
 
 1. **`convene` recreate semantics → confirm-then-overwrite.** On an existing `.council/`, warn and require a yes, then recreate from the template. Non-destructive three-way merge of hand-edits is deferred to Phase 4.
 2. **Seat selection → no selection in `meeting`.** `meeting` always runs **all** convened seats (the whole table is the point). `work` keeps chair-selects-the-relevant-subset, since an autonomous run shouldn't pay for irrelevant voices.
-3. **`work` stop triggers → any of four.** The run stops on whichever comes first: **chair says done**, **budget exceeded** (`max_turns`), **scratchpad size limit** (`scratch_max_bytes`), or **user requests stop**.
+3. **`work` stop triggers → any of five.** The run stops on whichever comes first: **chair says done**, **budget exceeded** (`max_turns`), **scratchpad size limit** (`scratch_max_bytes`), **wall-clock** (`max_wall_seconds`, optional — armed only when set `> 0`, checked at turn boundaries), or **user requests stop**.
 4. **Worktree merge → chair declares done, user asks for merge.** No auto-merge. The chair finishes, leaves the branch/worktree in place, and the user merges when ready (the chair hands over the commands).
 5. **Memory → one MD file per topic.** Not an append-only log. After a meeting or work session, the chair creates or updates the appropriately named topic file under `.council/memory/`. (Structured/queryable memory remains a possible later evolution.)
 
