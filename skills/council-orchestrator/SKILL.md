@@ -86,7 +86,7 @@ workers, no writes.
 
    ```
    Council: software-team — chair: staff-engineer
-   Budget: max_turns 12 · max_tokens 250k · scratch 200k
+   Budget: max_turns 12 · scratch 200k
 
      Seat                Title                Voice                         Chair
      ──────────────────  ───────────────────  ────────────────────────────  ─────
@@ -151,6 +151,10 @@ chair synthesizes. Seats are **read-only** (no worktree, no commits).
    `.council/scratch/<id>.md` to `.council/records/<id>.scratch.md`. Do **not**
    delete it: it's the audit artifact Gate 1 is checked against, and a future
    review can re-verify that no dissent was flattened only if it survives.
+   Then **commit** the record, the archived scratch, and the memory files — the
+   gates are defined over committed artifacts, so an uncommitted record/memory
+   leaves the audit trail unverifiable from the tree (write *and* commit, not
+   write alone).
 7. **Report** the synthesis to the user and point at the record file.
 
 ---
@@ -189,9 +193,10 @@ turn or two; a bounded implementation grinds for many.
    Then each turn is appended under a `## Turn N — <seat>` heading (work is
    chair-routed turns, not rounds, and there is **no** user-input section).
 4. **Read the budget** from `council.yaml` `work_budget` (`max_turns`,
-   `max_tokens`, `scratch_max_bytes`). Track turns taken and the scratchpad size
-   precisely; `max_tokens` you can only *estimate* roughly, so treat it as a soft
-   signal (see 6c), with `max_turns` as the deterministic turn-count cap.
+   `scratch_max_bytes`). Both are hard stops you can measure exactly — track turns
+   taken and the scratchpad byte size as you go. (There is no token cap: the
+   orchestrator has no reliable per-turn token count, so a token budget couldn't
+   fire — `max_turns` bounds how long a run goes; token spend rides along with it.)
 5. **Chair selects seats** relevant to the task; record in the scratchpad.
 6. **Take-turns loop (chair-driven):**
    a. The **chair** reads the scratchpad and decides **who acts next** and the
@@ -202,11 +207,9 @@ turn or two; a bounded implementation grinds for many.
    c. The **chair** evaluates whether to continue. **Stop on whichever of these
       four fires first:**
       - **chair says done** — the task is genuinely complete;
-      - **timeout / budget** — `max_turns` reached (the hard, deterministically
-        enforceable token proxy: a turn count you can track exactly). `max_tokens`
-        is a **soft ceiling, not a hard stop** — you only have a rough token
-        estimate, so when it's exceeded the chair "lands the plane" (wraps up at
-        the next clean stopping point) rather than halting mid-turn;
+      - **budget** — `max_turns` reached: a hard stop, a turn count you track
+        exactly. (This is the run-length cap; there is no separate token cap —
+        see step 4.);
       - **scratchpad size** — the scratchpad has grown past `scratch_max_bytes`
         (a hard stop: byte size is measured exactly);
       - **user stop** — the user asked to halt the run.
@@ -219,7 +222,11 @@ turn or two; a bounded implementation grinds for many.
    per the pinned **memory topic** structure and **topic naming** rule). Run the
    **post-synthesis conformance check**, then **archive the scratchpad** — rename
    `.council/scratch/<id>.md` to `.council/records/<id>.scratch.md` (don't delete
-   it; it's the audit artifact Gate 1 is checked against).
+   it; it's the audit artifact Gate 1 is checked against). Then **commit** the
+   record, the archived scratch, and the memory files — the gates are defined over
+   committed artifacts, so an uncommitted audit trail can't be verified from the
+   tree. (The record/memory live in the main `.council/`, not the worktree; commit
+   them on the branch you're handing back, or on `main` — but commit them.)
 9. **Declare done — do not auto-merge.** Leave the branch and worktree in place
    and hand the user a summary plus the exact commands to merge when *they*
    choose to, and to clean up:

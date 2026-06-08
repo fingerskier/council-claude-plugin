@@ -105,8 +105,8 @@ description: Software design + review council
 chair: staff-engineer
 seats: [staff-engineer, security-engineer, qa-engineer, product-manager]
 work_budget:
-  max_turns: 12          # cap on take-turns rounds in `work`
-  max_tokens: 250000     # soft ceiling; chair wraps up when exceeded
+  max_turns: 12          # hard cap on take-turns rounds in `work`
+  scratch_max_bytes: 200000  # hard stop trigger: halt `work` if the scratchpad grows past this
 ```
 
 ## 5. The commands
@@ -137,7 +137,7 @@ Read-only introspection of the convened council — no session, no spawn. The or
 
 ```
 Council: software-team — chair: staff-engineer
-Budget: max_turns 12 · max_tokens 250k · scratch 200k
+Budget: max_turns 12 · scratch 200k
 
   Seat                Title                       Voice                        Chair
   ──────────────────  ──────────────────────────  ───────────────────────────  ─────
@@ -169,7 +169,7 @@ The **autonomous** mode, and the council's only work verb that runs unattended. 
 This scales: a quick gut-check resolves in a turn or two and reads like a fast multi-perspective answer; a bounded implementation grinds across many turns. Same verb, the chair just runs the loop as long as the task warrants.
 
 - Runs in a **git worktree** (see §6) so filesystem changes are isolated.
-- Stops on **any** of four triggers (decision #3): **the chair says done**, a **timeout / budget exceeded** (`max_turns` is the hard turn-count cap; `max_tokens` is a soft ceiling the chair wraps up against — from `council.yaml`), the **scratchpad grows past its size limit** (`scratch_max_bytes`), or the **user asks it to stop**.
+- Stops on **any** of four triggers (decision #3): **the chair says done**, a **budget exceeded** (`max_turns`, the hard turn-count cap from `council.yaml` — there is no token cap, since the orchestrator can't reliably count tokens), the **scratchpad grows past its size limit** (`scratch_max_bytes`), or the **user asks it to stop**.
 - On finish, the chair **synthesizes** the outcome and **records** it to `.council/records/`. The chair does **not** auto-merge: it **declares the work done and leaves the worktree branch in place**; the **user asks for the merge** when they're ready (decision #4). The chair hands over the exact merge/cleanup commands.
 
 - Use for: anything from a quick breadth scan to a bounded implementation/refactor/research task you want the council to grind on unattended.
@@ -204,7 +204,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 - **Interactive (primary):** the orchestrator skill drives Task-tool subagents, building each worker's prompt from `.council/seats/<seat>.md` + injected task + the shared scratchpad. Sequential turn-taking for both `meeting` and `work`.
 - **Chair as router:** the chair selects which seats are relevant, picks who acts each turn, and decides termination (in `work`) or synthesizes on the user's call (in `meeting`). The chair is itself a seat (a personality file), so its routing/synthesis voice is tunable.
 - **Headless/SDK:** emit an `--agents` JSON object keyed by seat name, each personality body as the `prompt`. Same files, two delivery paths.
-- **Model/effort (v1):** seats and the chair all run on the **user's current default model/effort** — the orchestrator does not set per-seat models in the first version (see §3). The `model:` field is preserved as documentation for a later cost-routing phase (§9 Phase 4). A long `work` run can still burn far more tokens than a normal session — `work_budget` in `council.yaml` is the explicit guardrail: `max_turns` and `scratch_max_bytes` are the hard stops (turn count and byte size are measured exactly), while `max_tokens` is a soft ceiling the chair wraps up against, since the orchestrator only has a rough token estimate.
+- **Model/effort (v1):** seats and the chair all run on the **user's current default model/effort** — the orchestrator does not set per-seat models in the first version (see §3). The `model:` field is preserved as documentation for a later cost-routing phase (§9 Phase 4). A long `work` run can still burn far more tokens than a normal session — `work_budget` in `council.yaml` is the explicit guardrail: `max_turns` and `scratch_max_bytes` are the hard stops (turn count and byte size are measured exactly). There is deliberately **no token cap**: the orchestrator has no reliable per-turn token count, so a token budget couldn't fire — `max_turns` bounds run length, and token spend rides along with it.
 
 ## 9. MVP and phasing
 
@@ -227,8 +227,8 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 
 **Phase 3 — work**
 - autonomous take-turns with chair routing + termination
-- worktree isolation, budget guardrails (`max_turns`/`max_tokens`/`scratch_max_bytes`)
-- four stop triggers — chair-done / timeout / scratch-size / user-stop (#3)
+- worktree isolation, budget guardrails (`max_turns`/`scratch_max_bytes`)
+- four stop triggers — chair-done / budget / scratch-size / user-stop (#3)
 - chair declares done and hands off; **user asks for the merge** (#4); record + per-topic memory write-back
 
 **Phase 4 — polish**
@@ -240,7 +240,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 
 1. **`convene` recreate semantics → confirm-then-overwrite.** On an existing `.council/`, warn and require a yes, then recreate from the template. Non-destructive three-way merge of hand-edits is deferred to Phase 4.
 2. **Seat selection → no selection in `meeting`.** `meeting` always runs **all** convened seats (the whole table is the point). `work` keeps chair-selects-the-relevant-subset, since an autonomous run shouldn't pay for irrelevant voices.
-3. **`work` stop triggers → any of four.** The run stops on whichever comes first: **chair says done**, **timeout / budget exceeded**, **scratchpad size limit** (`scratch_max_bytes`), or **user requests stop**.
+3. **`work` stop triggers → any of four.** The run stops on whichever comes first: **chair says done**, **budget exceeded** (`max_turns`), **scratchpad size limit** (`scratch_max_bytes`), or **user requests stop**.
 4. **Worktree merge → chair declares done, user asks for merge.** No auto-merge. The chair finishes, leaves the branch/worktree in place, and the user merges when ready (the chair hands over the commands).
 5. **Memory → one MD file per topic.** Not an append-only log. After a meeting or work session, the chair creates or updates the appropriately named topic file under `.council/memory/`. (Structured/queryable memory remains a possible later evolution.)
 

@@ -7,5 +7,4 @@ chair: founder-operator
 seats: [founder-operator, customer-advocate, growth-marketer, product-manager, cfo, legal-risk-advisor]
 work_budget:
   max_turns: 10          # hard cap on take-turns rounds in `work`
-  max_tokens: 200000     # soft ceiling; chair wraps up when exceeded
   scratch_max_bytes: 200000  # hard stop trigger: halt `work` if the scratchpad grows past this

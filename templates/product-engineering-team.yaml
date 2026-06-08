@@ -8,5 +8,4 @@ chair: engineering-manager
 seats: [engineering-manager, mechanical-engineer, electrical-engineer, firmware-engineer, application-engineer, infrastructure-engineer]
 work_budget:
   max_turns: 14          # hard cap on take-turns rounds in `work`
-  max_tokens: 300000     # soft ceiling; chair wraps up when exceeded
   scratch_max_bytes: 250000  # hard stop trigger: halt `work` if the scratchpad grows past this

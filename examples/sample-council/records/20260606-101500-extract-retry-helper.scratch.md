@@ -42,5 +42,4 @@ Declaring done; merge goes to the user.
 
 ---
 <!-- Chair: done at Turn 4. max_turns (12) not reached; scratchpad well under
-     scratch_max_bytes; rough token estimate nowhere near max_tokens. Stop reason:
-     chair-done. -->
+     scratch_max_bytes. Stop reason: chair-done. -->
