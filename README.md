@@ -1,9 +1,7 @@
 # council
 
-A Claude Code plugin that convenes a **council** of named **seats**
-(personalities) and puts them to work — an interactive **meeting** or an
-autonomous **work** session — while a **chair** routes the seats and synthesizes
-a single answer.
+A Claude Code plugin that convenes a **council** of named **seats**, each with a unique personality, and puts them to work in an interactive **meeting** or an autonomous **work** session.
+The **chair** runs the others and synthesizes a single answer.
 
 See [PLAN.md](./PLAN.md) for the full design.
 
