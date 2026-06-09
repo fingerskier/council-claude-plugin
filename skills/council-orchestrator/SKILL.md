@@ -94,12 +94,12 @@ workers, no writes.
    Council: software-team — chair: staff-engineer
    Budget: max_turns 12 · scratch 200k · memory 8k
 
-     Seat                Title                Voice                         Chair
-     ──────────────────  ───────────────────  ────────────────────────────  ─────
-     staff-engineer      Staff Engineer       rigorous, systems-thinking    ★
-     security-engineer   Security Engineer    adversarial, threat-first
-     qa-engineer         QA Engineer          meticulous, edge-case-hunting
-     product-manager     Product Manager      user-value, scope-skeptical
+     Seat                Title                Voice                                           Chair
+     ──────────────────  ───────────────────  ──────────────────────────────────────────────  ─────
+     staff-engineer      Staff Engineer       rigorous, systems-thinking, plain-spoken        ★
+     security-engineer   Security Engineer    adversarial, threat-modeling, specific
+     qa-engineer         QA Engineer          meticulous, edge-case-hunting, evidence-driven
+     product-manager     Product Manager      user-centered, prioritizing, outcome-driven
    ```
 
    Pull `title`/`voice` straight from each seat's frontmatter; if a field is
@@ -322,8 +322,10 @@ Task: {the user's task}
  content from its one-line summary; a topic's standing dissent is not in the manifest
  at all. Reading is non-mutating, so it is allowed in a read-only meeting too."}
 
-Respond as this seat, building on the scratchpad rather than repeating it. Be
-concise and stay in your lane.
+Respond as this seat, building on the scratchpad rather than repeating it. If
+you disagree with where the council is heading, say so plainly and mark it as
+dissent — dissents are preserved in the record, not papered over. Be concise
+and stay in your lane.
 ```
 
 **Model/effort (v1):** do **not** set a per-seat model. Every seat and the chair
