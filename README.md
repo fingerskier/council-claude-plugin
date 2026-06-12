@@ -1,34 +1,107 @@
 # council
 
+A [Claude Code](https://code.claude.com/docs/en/overview) plugin that convenes a
+**council** of named **seats**, each with a unique personality, and puts them to
+work in an interactive **meeting** or an autonomous **work** session. The
+**chair** routes the others and synthesizes a single answer, keeping any dissent
+on the record.
+
+## Getting started
+
+You don't need to be a programmer to run a council — just to paste a few
+commands into a terminal. Three steps: get Claude Code, get this plugin,
+convene your first council.
+
+### 1. Get Claude Code
+
+`council` runs inside **Claude Code**, Anthropic's AI assistant that lives in
+your terminal. You'll need a [Claude](https://claude.ai) account (Pro or Max) or
+an Anthropic API key to sign in.
+
+Open a terminal (macOS: the **Terminal** app; Windows: **PowerShell**) and paste
+the installer line for your system:
+
+**macOS / Linux:**
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+Then run `claude` once — the first run walks you through signing in. If
+anything snags, the official [setup guide](https://code.claude.com/docs/en/setup)
+has the full instructions.
+
+### 2. Install the plugin
+
+Download a copy of this plugin to your computer:
+
+```bash
+git clone https://github.com/fingerskier/council-claude-plugin
+```
+
+(No git? On the [GitHub page](https://github.com/fingerskier/council-claude-plugin),
+click **Code → Download ZIP** and unzip it instead.)
+
+That's the whole install — there is no build step. You point Claude Code at the
+folder when you start it (next step). To install it permanently instead, add the
+plugin via Claude Code's plugin/marketplace configuration pointing at this repo.
+
+### 3. Set up your first council
+
+Each council lives in its own folder: its roster, its memory, and its meeting
+records all stay together there. So make **one sub-directory per council** — a
+folder for your product council, another for your writing council, and so on —
+then start Claude Code inside it:
+
+```bash
+mkdir product-council
+cd product-council
+claude --plugin-dir ../council-claude-plugin
+```
+
+(The `--plugin-dir` path points at the folder you downloaded in step 2 — adjust
+it if you put that folder somewhere else.)
+
+Inside Claude Code, convene the council:
+
+```
+/council convene
+```
+
+It will ask which template to use — `software-team` is the default;
+`c-suite`, `product-engineering-team`, `solo-founder`, `writing-lab`, and
+`hedge-fund-team` are also bundled. Convening stamps a `.council/` directory
+into your folder with editable seat files — the council is now yours to tune.
+
+Check the roster and hold your first meeting:
+
+```
+/council info
+/council meeting "should we adopt a job queue?"
+```
+
+To run a second council, make another sub-directory and convene there. Each
+folder keeps its own `.council/`, so councils never share seats, memory, or
+records. (You can also convene directly inside an existing project's repo —
+`.council/` is created wherever you run `convene`.)
+
+> **Note:** the autonomous `/council work` verb edits files in a git worktree,
+> so its folder must be a git repository (run `git init` once inside it).
+> `convene`, `info`, and `meeting` work in any folder.
+
+## Why a council?
+
 **A single agent doesn't disagree with itself.** Ask one for a verdict and you get one perspective, confidently — no security engineer poking at the trust boundary, no QA hunting the edge case, no PM asking whether you're solving the right problem. `council` fixes that: it convenes a roster of opinionated **seats**, each a distinct persona, has them deliberate, and lets a **chair** synthesize one answer — while **preserving the dissent** in an auditable record instead of flattening it into false consensus.
 
 Use it when a decision is worth more than one opinion: a design review, a "should we ship this?" gut-check, an autonomous task you want pressure-tested as it's built.
 
-A Claude Code plugin that convenes a **council** of named **seats**, each with a unique personality, and puts them to work in an interactive **meeting** or an autonomous **work** session. The **chair** routes the others and synthesizes a single answer, keeping any dissent on the record.
-
 See [PLAN.md](./PLAN.md) for the full design.
-
-## Install
-
-This is a standard Claude Code plugin — `commands/` and `skills/` are discovered
-by convention, no build step.
-
-```bash
-# Try it locally from a clone (no install):
-git clone https://github.com/fingerskier/council-claude-plugin
-claude --plugin-dir council-claude-plugin
-```
-
-Then, in any repo:
-
-```
-/council convene          # stamp a .council/ from the default software-team template
-/council meeting "should we adopt a job queue?"
-```
-
-To install it permanently, add the plugin via Claude Code's plugin/marketplace
-configuration pointing at this repo
-(`https://github.com/fingerskier/council-claude-plugin`).
 
 ## Commands
 
