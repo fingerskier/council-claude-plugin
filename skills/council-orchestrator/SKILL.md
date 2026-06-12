@@ -44,11 +44,20 @@ chair's persona from `.council/seats/<chair>.md`.
 Create or recreate `.council/` from a template. No task runs.
 
 1. **Pick the template.** If the user gave a name, use it. Otherwise list the
-   templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description`, and
-   ask which to use (default `software-team`).
+   templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description` as
+   text, then ask which to use with the **AskUserQuestion** tool: one question,
+   up to four template options — `software-team` first, labeled
+   `(Recommended)` — each option's description taken from the template's
+   `description` field. When there are more than four templates, the text list
+   above keeps the rest visible and the user picks an unlisted one by typing
+   its name via "Other". (If the tool is unavailable, ask in plain
+   conversation; default `software-team`.)
 2. **Guard existing council.** If `.council/council.yaml` already exists, warn
    that recreating will overwrite **`council.yaml` and the `seats/` copies** (where
-   hand-edits live) and confirm before proceeding. Do not clobber without a yes.
+   hand-edits live) and confirm before proceeding — ask with the
+   **AskUserQuestion** tool, options **Cancel — keep the current council**
+   first and **Recreate — overwrite roster and seats** second (plain
+   conversation if the tool is unavailable). Do not clobber without a yes.
    Recreate is **scoped to those two**: it **never deletes `memory/`, `records/`,
    or `scratch/`**. The council's accumulated memory and audit trail are its most
    valuable, least-recreatable state, so a re-convene rebuilds the roster *around*
@@ -146,10 +155,21 @@ read-only instruction is **injected into every meeting seat's prompt** (see
    a. For each seat **in turn**, spawn a seat worker (see *Spawning a
       seat* below) with the task and the current scratchpad. Append its response
       to the scratchpad under a `## Round N — <seat>` heading.
-   b. After the round, give the user a tight summary of what each seat said and
-      **ask for their input** — a steer, a constraint, a new question — or to
-      conclude the meeting. Append the user's input to the scratchpad. (This is
-      a normal conversational pause; wait for the user.)
+   b. After the round, give the user a tight summary of what each seat said —
+      a markdown table, one row per seat (`Seat | Position | Dissent?`), the
+      position compressed to a line and the dissent column flagging any seat
+      that marked dissent this round. Then **ask for their input** with the
+      **AskUserQuestion** tool — one question ("Where to next?") with two
+      options:
+      - **Another round** — run the next round on the current course;
+      - **Conclude** — end the meeting; the chair synthesizes.
+      A steer, a constraint, or a new question arrives as free text via the
+      built-in "Other" choice — that free text *is* the user input the next
+      round builds on. Append whatever the user chose or typed to the
+      scratchpad under `## User input after Round N`: the selected option and
+      any free text verbatim, so the audit trail captures the steer exactly.
+      (If the AskUserQuestion tool is unavailable, ask in plain conversation
+      and wait — the pause is the contract, not the widget.)
    c. Repeat rounds until the user concludes.
 5. **Conclude:** spawn the **chair** as a worker over the full scratchpad +
    memory to synthesize: a unified recommendation, preserved dissents (who

@@ -159,7 +159,7 @@ The deliberative, **human-in-the-loop** round-table. **All convened seats speak*
 
 Loop per round:
 1. Each seat speaks in turn, appending to the scratchpad; later seats react to earlier ones.
-2. At the end of the round, **the user may add input** — a steer, a constraint, a new question — which goes into the scratchpad for the next round.
+2. At the end of the round, **the user may add input** — a steer, a constraint, a new question — which goes into the scratchpad for the next round. (The pause is presented as a structured choice via the `AskUserQuestion` tool — another round / conclude, free-text steers via "Other" — with a plain-conversation fallback; see Phase 5.)
 3. Repeat until **the user concludes the meeting**.
 
 On conclusion, the **chair synthesizes** the whole conversation (decision + dissents + open threads) and writes it to `.council/records/<timestamp>-<slug>.md`. Salient takeaways may be appended to `.council/memory/`.
@@ -249,6 +249,37 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 - `max_wall_seconds` wall-clock/timeout budget — **delivered** (a fifth, optional `work` stop trigger; armed only when set `> 0`; measured at turn boundaries against a `date +%s` epoch recorded at session open; absent/0/negative = unarmed).
 - ~~per-seat model routing (re-enables the `model:` field deferred in v1)~~ — **declined:** no per-seat routing; v1 default-model policy stands.
 - ~~recreate-safety for `convene` (non-destructive merge of hand-edits)~~ — **deferred:** confirm-then-overwrite (decision #1) is sufficient until a user loses hand-edits in practice.
+
+**Phase 5 — structured interactivity (in Claude Code's own UI)**
+- the `meeting` per-round pause asks via the `AskUserQuestion` tool — **Another
+  round** / **Conclude** as options, free-text steers through the built-in
+  "Other" — and the round summary renders as a one-row-per-seat table
+  (`Seat | Position | Dissent?`); the chosen option and any free text are still
+  appended verbatim to the scratchpad, so the audit trail is unchanged
+- `convene`'s template pick and recreate-overwrite confirmation ask the same way
+- plain-conversation fallback wherever the tool is unavailable — the pause is
+  the contract, not the widget
+- this is the ceiling of in-Claude-Code UI: plugins are prompt material and
+  cannot add panels or custom rendering to Claude Code's TUI, which is what
+  motivates the pinned companion TUI below
+
+**Pinned for later — companion TUI (file-watching dashboard).** A standalone
+terminal UI that *watches* a convened council rather than extending Claude
+Code's interface. The data layer already supports it with no protocol changes:
+all council state is plain files, so the TUI just watches the filesystem —
+roster from `council.yaml` (chair marked), the active `scratch/<id>.md` tailed
+live as seats take turns, `records/` and `memory/` browsable after synthesis,
+and `git -C .council/worktrees/<id> status` for `work` sessions. It runs in a
+**second terminal** beside the Claude Code session — the Bash tool has no TTY
+passthrough, so an interactive TUI can't be launched from a council command —
+and would live in-repo (e.g. `tui/`) but **outside the plugin install**,
+preserving the plugin's no-build-step property. Candidate stacks: Ink
+(Node/React), Textual (Python), or Bubble Tea (Go, single static binary).
+Scope it **read-only first**; two-way steering (typing a redirect mid-meeting)
+is deferred with it, since the human's input currently flows through the Claude
+Code conversation, not files — it would need the orchestrator to poll a
+`scratch/<id>.steer.md` between rounds, an extra moving part to weigh when the
+read-only dashboard proves itself.
 
 ## 10. Resolved decisions
 
