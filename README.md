@@ -43,12 +43,13 @@ Start Claude Code anywhere (just run `claude` in a terminal) and paste these two
 commands at its prompt:
 
 ```
-/plugin marketplace add fingerskier/council-claude-plugin
-/plugin install council@council-claude-plugin
+/plugin marketplace add fingerskier/claude-plugins
+/plugin install council@fingerskier-plugins
 ```
 
-The first command registers this repo as a plugin source; the second installs
-the `council` plugin from it. That's the whole install — there is no build
+The first command registers the [fingerskier/claude-plugins](https://github.com/fingerskier/claude-plugins)
+marketplace as a plugin source; the second installs the `council` plugin from
+it. That's the whole install — there is no build
 step, and `/council` is now available in every Claude Code session.
 
 **Prefer to try it without installing?** Clone the repo and load it for a
@@ -137,8 +138,7 @@ See [PLAN.md](./PLAN.md) for the full design.
 ## Layout
 
 ```
-.claude-plugin/plugin.json           # plugin manifest
-.claude-plugin/marketplace.json      # lets /plugin marketplace add install from this repo
+.claude-plugin/plugin.json           # plugin manifest (listed in the fingerskier/claude-plugins marketplace)
 commands/council.md                  # slash-command entry
 skills/council-orchestrator/SKILL.md # the orchestrator: routing, protocols, synthesis
 personalities/*.md                   # the seat library (extensible)
