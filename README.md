@@ -39,18 +39,25 @@ has the full instructions.
 
 ### 2. Install the plugin
 
-Download a copy of this plugin to your computer:
+Start Claude Code anywhere (just run `claude` in a terminal) and paste these two
+commands at its prompt:
+
+```
+/plugin marketplace add fingerskier/council-claude-plugin
+/plugin install council@council-claude-plugin
+```
+
+The first command registers this repo as a plugin source; the second installs
+the `council` plugin from it. That's the whole install — there is no build
+step, and `/council` is now available in every Claude Code session.
+
+**Prefer to try it without installing?** Clone the repo and load it for a
+single session instead:
 
 ```bash
 git clone https://github.com/fingerskier/council-claude-plugin
+claude --plugin-dir council-claude-plugin
 ```
-
-(No git? On the [GitHub page](https://github.com/fingerskier/council-claude-plugin),
-click **Code → Download ZIP** and unzip it instead.)
-
-That's the whole install — there is no build step. You point Claude Code at the
-folder when you start it (next step). To install it permanently instead, add the
-plugin via Claude Code's plugin/marketplace configuration pointing at this repo.
 
 ### 3. Set up your first council
 
@@ -62,11 +69,12 @@ then start Claude Code inside it:
 ```bash
 mkdir product-council
 cd product-council
-claude --plugin-dir ../council-claude-plugin
+claude
 ```
 
-(The `--plugin-dir` path points at the folder you downloaded in step 2 — adjust
-it if you put that folder somewhere else.)
+(If you took the try-it-without-installing path in step 2, start Claude Code
+with `claude --plugin-dir ../council-claude-plugin` instead, adjusting the path
+to wherever you cloned it.)
 
 Inside Claude Code, convene the council:
 
@@ -129,7 +137,8 @@ See [PLAN.md](./PLAN.md) for the full design.
 ## Layout
 
 ```
-.claude-plugin/plugin.json
+.claude-plugin/plugin.json           # plugin manifest
+.claude-plugin/marketplace.json      # lets /plugin marketplace add install from this repo
 commands/council.md                  # slash-command entry
 skills/council-orchestrator/SKILL.md # the orchestrator: routing, protocols, synthesis
 personalities/*.md                   # the seat library (extensible)

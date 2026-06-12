@@ -1,0 +1,15 @@
+{
+  "name": "council-claude-plugin",
+  "owner": {
+    "name": "fingerskier"
+  },
+  "plugins": [
+    {
+      "name": "council",
+      "description": "Convene a council of personality seats and put them to work — an interactive meeting or an autonomous work session — while a chair routes the seats and synthesizes a single answer.",
+      "source": "./",
+      "version": "0.1.0",
+      "homepage": "https://github.com/fingerskier/council-claude-plugin"
+    }
+  ]
+}
