@@ -25,5 +25,6 @@ stop.
 Now **follow the `council-orchestrator` skill** to carry out that verb. The
 skill contains the full procedure for `convene`, `info`, `meeting`, and `work`,
 including how to read `.council/`, spawn seat workers, drive the scratchpad, and
-have the chair synthesize. Use `${CLAUDE_PLUGIN_ROOT}` as the path to the
-plugin's bundled `templates/` and `personalities/` directories.
+have the chair synthesize. For this Claude invocation, treat
+`${CLAUDE_PLUGIN_ROOT}` as `COUNCIL_PLUGIN_ROOT`, the path to the plugin's
+bundled `templates/` and `personalities/` directories.

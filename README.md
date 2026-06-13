@@ -4,14 +4,22 @@
 
 Use it when a decision is worth more than one opinion: a design review, a "should we ship this?" gut-check, an autonomous task you want pressure-tested as it's built.
 
-A Claude Code plugin that convenes a **council** of named **seats**, each with a unique personality, and puts them to work in an interactive **meeting** or an autonomous **work** session. The **chair** routes the others and synthesizes a single answer, keeping any dissent on the record.
+A Claude Code and Codex plugin that convenes a **council** of named **seats**, each with a unique personality, and puts them to work in an interactive **meeting** or an autonomous **work** session. The **chair** routes the others and synthesizes a single answer, keeping any dissent on the record.
 
 See [PLAN.md](./PLAN.md) for the full design.
 
 ## Install
 
-This is a standard Claude Code plugin — `commands/` and `skills/` are discovered
-by convention, no build step.
+This repo is dual-hosted:
+
+- Claude Code discovers `.claude-plugin/`, `commands/`, and `skills/`.
+- Codex discovers `.codex-plugin/plugin.json` and the same `skills/` directory.
+
+The root mechanics are shared. Both hosts read the bundled `templates/` and
+`personalities/`, then create or use the project-local `.council/` directory.
+There is no build step.
+
+### Claude Code
 
 ```bash
 # Try it locally from a clone (no install):
@@ -29,6 +37,21 @@ Then, in any repo:
 To install it permanently, add the plugin via Claude Code's plugin/marketplace
 configuration pointing at this repo
 (`https://github.com/fingerskier/council-claude-plugin`).
+
+### Codex
+
+Install this repo as a local Codex plugin, then invoke the skill conversationally:
+
+```
+council convene software-team
+council info
+council meeting "should we adopt a job queue?"
+council work "implement the retry helper and preserve dissents"
+```
+
+Codex does not use Claude slash commands. The `council-orchestrator` skill maps
+those prompts to the same four verbs and uses Codex sub-agents for seats when a
+meeting or work session is invoked.
 
 ## Commands
 
@@ -57,6 +80,7 @@ configuration pointing at this repo
 
 ```
 .claude-plugin/plugin.json
+.codex-plugin/plugin.json            # Codex manifest; points at the same skills/
 commands/council.md                  # slash-command entry
 skills/council-orchestrator/SKILL.md # the orchestrator: routing, protocols, synthesis
 personalities/*.md                   # the seat library (extensible)

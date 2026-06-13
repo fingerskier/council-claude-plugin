@@ -1,0 +1,7 @@
+interface:
+  display_name: "Council"
+  short_description: "Convene and run personality-seat councils from Codex."
+  default_prompt: "Use council to convene a software-team council, inspect it, or run a meeting/work session."
+  brand_color: "#4F7CAC"
+policy:
+  allow_implicit_invocation: true

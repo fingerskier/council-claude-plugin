@@ -1,20 +1,44 @@
 ---
 name: council-orchestrator
-description: Orchestrates a council of personality "seats" for the /council command. Use when the user runs /council, or asks to convene a council, hold a council meeting, or have the council work on a task. Handles the convene, info, meeting, and work verbs — reading .council/, spawning seat workers, driving the shared scratchpad, and having the chair synthesize.
+description: Orchestrates a council of personality "seats" for Claude and Codex. Use when the user runs /council, asks to convene a council, hold a council meeting, inspect council info, or have the council work on a task. Handles the convene, info, meeting, and work verbs by reading .council/, spawning seat workers, driving the shared scratchpad, and having the chair synthesize.
 ---
 
 # Council Orchestrator
 
 A **council** is a set of named **seats** (personalities) plus a **chair** that
 routes them and synthesizes their output. This skill runs the three council
-verbs. You are the orchestrator — you do not voice the seats yourself; you spawn
-a worker per seat (via the Task tool) carrying that seat's persona, and you let
-the chair route and synthesize.
+verbs. You are the orchestrator - you do not voice the seats yourself; you spawn
+a worker per seat using the host's worker facility carrying that seat's persona,
+and you let the chair route and synthesize.
+
+## Host adapter
+
+The council's durable mechanics are host-neutral: bundled `templates/` and
+`personalities/` seed a project-local `.council/`, and sessions write
+`.council/scratch/`, `.council/records/`, and `.council/memory/`. Only the entry
+point, plugin-root variable, and worker-spawn tool differ by host.
+
+- **Claude Code:** the user invokes `commands/council.md` as `/council ...`.
+  Treat `${CLAUDE_PLUGIN_ROOT}` as `COUNCIL_PLUGIN_ROOT`. Spawn seats with the
+  Claude `Task` tool.
+- **Codex:** the user invokes the skill conversationally, e.g.
+  `council convene software-team`, `council info`,
+  `council meeting "<task>"`, or `council work "<task>"`. Resolve
+  `COUNCIL_PLUGIN_ROOT` as the installed plugin root that contains this
+  `skills/council-orchestrator/SKILL.md` file plus the sibling `templates/` and
+  `personalities/` directories. For seat workers, use `multi_agent_v1.spawn_agent`
+  when available; if the tool is not loaded, discover it with `tool_search` using
+  a query like `multi-agent spawn subagent`.
+
+When the user asks to run a council meeting or work session in Codex, that
+request is explicit permission to use sub-agents as the council's execution
+mechanism. Do not set a model override for spawned agents unless the user
+explicitly requests it.
 
 ## Where things live
 
-- **Plugin library (read-only):** `${CLAUDE_PLUGIN_ROOT}/templates/*.yaml` and
-  `${CLAUDE_PLUGIN_ROOT}/personalities/*.md`. The source material `convene`
+- **Plugin library (read-only):** `COUNCIL_PLUGIN_ROOT/templates/*.yaml` and
+  `COUNCIL_PLUGIN_ROOT/personalities/*.md`. The source material `convene`
   copies from.
 - **The convened council (user-owned):** `.council/` in the working repo.
   ```
@@ -44,7 +68,7 @@ chair's persona from `.council/seats/<chair>.md`.
 Create or recreate `.council/` from a template. No task runs.
 
 1. **Pick the template.** If the user gave a name, use it. Otherwise list the
-   templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description`, and
+   templates in `COUNCIL_PLUGIN_ROOT/templates/` with their `description`, and
    ask which to use (default `software-team`).
 2. **Guard existing council.** If `.council/council.yaml` already exists, warn
    that recreating will overwrite **`council.yaml` and the `seats/` copies** (where
@@ -59,9 +83,9 @@ Create or recreate `.council/` from a template. No task runs.
    `.council/seats/`, `.council/memory/`, `.council/scratch/`, `.council/records/`.
    Existing `memory/` and `records/` content is left untouched (step 2).
 4. **Write `.council/council.yaml`** from the chosen template
-   (`${CLAUDE_PLUGIN_ROOT}/templates/<name>.yaml`).
+   (`COUNCIL_PLUGIN_ROOT/templates/<name>.yaml`).
 5. **Copy the seats.** For each seat in the template's `seats:` list, copy
-   `${CLAUDE_PLUGIN_ROOT}/personalities/<seat>.md` to `.council/seats/<seat>.md`.
+   `COUNCIL_PLUGIN_ROOT/personalities/<seat>.md` to `.council/seats/<seat>.md`.
 6. **Leave `memory/` empty.** Memory is one markdown file per topic, created by
    the chair when a meeting or work session concludes — there's nothing to seed
    at convene time. (The directory exists from step 3.)
@@ -224,7 +248,7 @@ turn or two; a bounded implementation grinds for many.
       concrete sub-goal for this turn.
    b. Spawn that seat as a worker (see *Spawning a seat*) with the task, the
       sub-goal, and the scratchpad, pointed at the worktree by its **absolute
-      path** — the Task tool can't set the worker's cwd, so the worktree is named
+      path** — most worker tools can't set the worker's cwd, so the worktree is named
       in the prompt, not as a working directory. It may read/edit files and run
       commands **under** the worktree. After it returns, **verify its edits landed
       in the worktree, not the main tree**: `git -C .council/worktrees/<id> status`
@@ -286,9 +310,18 @@ turn or two; a bounded implementation grinds for many.
 
 ## Spawning a seat
 
-Spawn each seat with the **Task** tool (`subagent_type: general-purpose`,
-running in the background only if you are fanning out a parallel set — meeting
-and work are sequential, so spawn one at a time and wait). Build the prompt as:
+Spawn each seat with the host's worker tool:
+
+- **Claude Code:** use the `Task` tool with `subagent_type: general-purpose`,
+  running in the background only if you are fanning out a parallel set.
+- **Codex:** use `multi_agent_v1.spawn_agent`. Use `agent_type: worker` for
+  `work` turns that may edit files. For read-only meeting turns, use the default
+  agent type unless the seat's subtask is specifically codebase exploration. Call
+  `wait_agent` for the sequential seat result, then `close_agent` after the
+  result is captured.
+
+Meeting and work are sequential, so spawn one seat at a time and wait. Build the
+prompt as:
 
 ```
 You are acting as a council seat. Fully adopt this persona — its priorities,
@@ -308,8 +341,8 @@ Shared scratchpad (the conversation so far — read it before you speak):
 Task: {the user's task}
 {For work turns, also: "This turn's sub-goal (assigned by the chair): ..."}
 {For work, also: "All your file work happens in the git worktree at the absolute
- path .council/worktrees/<id>/ — treat that subtree as the project root. The Task
- tool does not change your working directory, so address every read, edit, and
+ path .council/worktrees/<id>/ — treat that subtree as the project root. The
+ worker tool may not change your working directory, so address every read, edit, and
  command at a path *under* that worktree; do not touch files outside it. Report the
  paths you changed so the chair can confirm they landed in the worktree."}
 {For meeting, also: "This is a meeting and you are read-only: contribute analysis

@@ -1,0 +1,37 @@
+{
+  "name": "council-claude-plugin",
+  "version": "0.1.0",
+  "description": "Convene a council of personality seats for deliberation, review, and bounded autonomous work.",
+  "author": {
+    "name": "fingerskier"
+  },
+  "homepage": "https://github.com/fingerskier/council-claude-plugin",
+  "repository": "https://github.com/fingerskier/council-claude-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "council",
+    "deliberation",
+    "multi-agent",
+    "subagents",
+    "orchestration"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Council",
+    "shortDescription": "Convene personality-seat councils in Codex.",
+    "longDescription": "Council adds a reusable orchestrator skill for convening project-local .council rosters from bundled templates, running multi-perspective meetings, and driving bounded work sessions while preserving dissents and durable records.",
+    "developerName": "fingerskier",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write",
+      "Multi-agent"
+    ],
+    "defaultPrompt": [
+      "council convene software-team",
+      "council info",
+      "council meeting \"Should we ship this?\""
+    ],
+    "brandColor": "#4F7CAC"
+  }
+}

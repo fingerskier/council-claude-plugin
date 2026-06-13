@@ -1,6 +1,6 @@
 # Council — Plugin Plan
 
-A Claude Code plugin that turns the CLI into a multi-perspective deliberation engine. You **convene** a council of named **seats** (personalities) into a project, then hand it either an interactive **meeting** or an autonomous **work** session — while a **chair** routes the seats and synthesizes a single answer.
+A dual-host Claude Code and Codex plugin that turns the CLI into a multi-perspective deliberation engine. You **convene** a council of named **seats** (personalities) into a project, then hand it either an interactive **meeting** or an autonomous **work** session — while a **chair** routes the seats and synthesizes a single answer.
 
 ## 1. Core idea
 
@@ -31,10 +31,11 @@ Everything the council *is* and everything it *remembers* lives under `.council/
 ```
 council/
 ├── .claude-plugin/plugin.json
+├── .codex-plugin/plugin.json          # Codex manifest; points at the same skills/
 ├── skills/
 │   └── council-orchestrator/SKILL.md   # the brain: routing, protocols, synthesis
 ├── commands/
-│   └── council.md                       # slash-command entry, delegates to skill
+│   └── council.md                       # Claude slash-command entry, delegates to skill
 ├── personalities/                       # the seat library (extensible)
 │   ├── ceo.md  cfo.md  cto.md  coo.md  chief-counsel.md
 │   ├── staff-engineer.md  security-engineer.md  qa-engineer.md  product-manager.md
@@ -205,7 +206,7 @@ Dissent preservation is the point of a council — a synthesis that erases disag
 
 ## 8. Technical approach
 
-- **Interactive (primary):** the orchestrator skill drives Task-tool subagents, building each worker's prompt from `.council/seats/<seat>.md` + injected task + the shared scratchpad. Sequential turn-taking for both `meeting` and `work`.
+- **Interactive (primary):** the orchestrator skill drives host worker subagents (Claude `Task`, Codex `multi_agent_v1.spawn_agent`), building each worker's prompt from `.council/seats/<seat>.md` + injected task + the shared scratchpad. Sequential turn-taking for both `meeting` and `work`.
 - **Chair as router:** the chair selects which seats are relevant, picks who acts each turn, and decides termination (in `work`) or synthesizes on the user's call (in `meeting`). The chair is itself a seat (a personality file), so its routing/synthesis voice is tunable.
 - **Headless/SDK:** emit an `--agents` JSON object keyed by seat name, each personality body as the `prompt`. Same files, two delivery paths.
 - **Model/effort (v1):** seats and the chair all run on the **user's current default model/effort** — the orchestrator does not set per-seat models in the first version (see §3). Per-seat model routing is **declined** (the user cut it in Phase 4); the `model:`/`tools:` fields are preserved purely as forward-looking documentation and no phase currently enforces them. A long `work` run can still burn far more tokens than a normal session — `work_budget` in `council.yaml` is the explicit guardrail: `max_turns` and `scratch_max_bytes` are the hard stops (turn count and byte size are measured exactly). There is deliberately **no token cap**: the orchestrator has no reliable per-turn token count, so a token budget couldn't fire — `max_turns` bounds run length, and token spend rides along with it.
