@@ -1,6 +1,6 @@
 {
   "name": "council",
-  "version": "0.1.0",
+  "version": "2026.6.10",
   "description": "Convene a council of personality seats and put them to work — an interactive meeting or an autonomous work session — while a chair routes the seats and synthesizes a single answer.",
   "keywords": ["council", "deliberation", "multi-agent", "subagents", "orchestration"],
   "license": "Apache-2.0"

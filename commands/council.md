@@ -1,7 +1,7 @@
 ---
 description: Convene a council and put it to work — convene | info | meeting | work
 argument-hint: convene [template] | info | meeting "<task>" | work "<task>"
-allowed-tools: Task, Read, Write, Edit, Glob, Grep, Bash
+allowed-tools: Task, Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
 You are the entry point for the **council** plugin. The user invoked
