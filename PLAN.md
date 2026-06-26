@@ -43,7 +43,8 @@ council/
 │   ├── firmware-engineer.md  application-engineer.md  infrastructure-engineer.md
 │   ├── founder-operator.md  customer-advocate.md  growth-marketer.md  legal-risk-advisor.md
 │   ├── editor.md  line-editor.md  critic.md  researcher.md
-│   └── portfolio-manager.md  quant-analyst.md  risk-manager.md  macro-strategist.md  fundamental-analyst.md  trader.md
+│   ├── portfolio-manager.md  quant-analyst.md  risk-manager.md  macro-strategist.md  fundamental-analyst.md  trader.md
+│   └── journalist.md
 ├── templates/                           # preset compositions
 │   ├── software-team.yaml
 │   ├── product-engineering-team.yaml

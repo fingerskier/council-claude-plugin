@@ -3,7 +3,7 @@
 name: hedge-fund-team
 description: Generate, stress-test, and size investment ideas
 chair: portfolio-manager
-seats: [portfolio-manager, quant-analyst, risk-manager, macro-strategist, fundamental-analyst, trader]
+seats: [portfolio-manager, quant-analyst, risk-manager, macro-strategist, fundamental-analyst, journalist, trader]
 work_budget:
   max_turns: 12          # hard cap on take-turns rounds in `work`
   scratch_max_bytes: 200000  # hard stop trigger: halt `work` if the scratchpad grows past this
