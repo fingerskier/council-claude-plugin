@@ -110,7 +110,6 @@ records. (You can also convene directly inside an existing project's repo —
 
 Use it when a decision is worth more than one opinion: a design review, a "should we ship this?" gut-check, an autonomous task you want pressure-tested as it's built.
 
-<<<<<<< HEAD
 A Claude Code and Codex plugin that convenes a **council** of named **seats**, each with a unique personality, and puts them to work in an interactive **meeting** or an autonomous **work** session. The **chair** routes the others and synthesizes a single answer, keeping any dissent on the record.
 
 See [PLAN.md](./PLAN.md) for the full design.
@@ -160,10 +159,6 @@ Codex does not use Claude slash commands. The `council-orchestrator` skill maps
 those prompts to the same four verbs and uses Codex sub-agents for seats when a
 meeting or work session is invoked.
 
-=======
-See [PLAN.md](./PLAN.md) for the full design.
-
->>>>>>> 7b904be4639d5c5285fed35d190f8eba18167efe
 ## Commands
 
 ```
@@ -190,12 +185,8 @@ See [PLAN.md](./PLAN.md) for the full design.
 ## Layout
 
 ```
-<<<<<<< HEAD
-.claude-plugin/plugin.json
-.codex-plugin/plugin.json            # Codex manifest; points at the same skills/
-=======
 .claude-plugin/plugin.json           # plugin manifest (listed in the fingerskier/claude-plugins marketplace)
->>>>>>> 7b904be4639d5c5285fed35d190f8eba18167efe
+.codex-plugin/plugin.json            # Codex manifest; points at the same skills/
 commands/council.md                  # slash-command entry
 skills/council-orchestrator/SKILL.md # the orchestrator: routing, protocols, synthesis
 personalities/*.md                   # the seat library (extensible)
