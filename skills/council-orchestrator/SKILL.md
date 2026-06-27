@@ -1,6 +1,6 @@
 ---
 name: council-orchestrator
-description: Orchestrates a council of personality "seats" for Claude and Codex. Use when the user runs /council, asks to convene a council, hold a council meeting, inspect council info, or have the council work on a task. Handles the convene, info, meeting, and work verbs by reading .council/, spawning seat workers, driving the shared scratchpad, and having the chair synthesize.
+description: Orchestrates a council of personality "seats" for Claude and Codex. Use when the user runs /council, asks to convene a council, hold a council meeting, inspect council info, have the council work on a task, frame/scope a question, or plan/decompose an initiative. Handles the convene, info, meeting, and work verbs — including meeting's `--frame` scoping mode (writes a BRIEF) and work's `--plan` decomposition mode (writes a ROADMAP) for long-horizon initiatives — by reading .council/, spawning seat workers, driving the shared scratchpad, and having the chair synthesize.
 ---
 
 # Council Orchestrator
@@ -20,10 +20,14 @@ point, plugin-root variable, and worker-spawn tool differ by host.
 
 - **Claude Code:** the user invokes `commands/council.md` as `/council ...`.
   Treat `${CLAUDE_PLUGIN_ROOT}` as `COUNCIL_PLUGIN_ROOT`. Spawn seats with the
-  Claude `Task` tool.
+  Claude `Task` tool. The initiative modes are flags on the existing verbs:
+  `/council meeting --frame "<question>"` and `/council work --plan` (no new
+  top-level verbs — the surface stays four verbs).
 - **Codex:** the user invokes the skill conversationally, e.g.
   `council convene software-team`, `council info`,
-  `council meeting "<task>"`, or `council work "<task>"`. Resolve
+  `council meeting "<task>"`, or `council work "<task>"`. The initiative modes
+  are spoken the same way: `council meeting --frame "<question>"` (or "frame this
+  question: …") and `council work --plan` (or "plan the active initiative"). Resolve
   `COUNCIL_PLUGIN_ROOT` as the installed plugin root that contains this
   `skills/council-orchestrator/SKILL.md` file plus the sibling `templates/` and
   `personalities/` directories. For seat workers, use `multi_agent_v1.spawn_agent`
@@ -48,8 +52,20 @@ explicitly requests it.
   ├── memory/<topic>.md   # long-term council memory: one file per topic
   ├── scratch/<id>.md     # live shared scratchpad for one meeting/work session
   ├── records/<id>.md     # durable synthesized outputs
-  └── worktrees/<id>/     # git worktrees for `work` sessions (ephemeral)
+  ├── worktrees/<id>/     # git worktrees for `work` sessions (ephemeral)
+  ├── active-initiative   # one line: the slug of the current initiative (committed; optional)
+  └── initiatives/<slug>/ # long-horizon initiatives (see "Initiative tier" below)
+      ├── BRIEF.md        #   framed problem: scope, conventions, success criteria (from `meeting --frame`)
+      └── ROADMAP.md      #   decomposition: phases → tasks with deps + acceptance (from `work --plan`)
   ```
+
+  The first six entries are the **session** tier (`scratch/`, `records/`) and the
+  **topic** tier (`memory/`). `initiatives/` is the **initiative** tier: a framed
+  problem (`BRIEF.md`) and its decomposition (`ROADMAP.md`), evolving across
+  sessions, distinct from per-session records (immutable) and per-topic memory
+  (accretive). Every initiative doc is **chair-written into the main `.council/`**
+  (never by a seat, never inside a worktree), and each revision is also captured by
+  an immutable session `records/<id>.md`, so the evolving docs stay auditable.
 
 ## Preflight (every verb except `convene`)
 
@@ -68,11 +84,7 @@ chair's persona from `.council/seats/<chair>.md`.
 Create or recreate `.council/` from a template. No task runs.
 
 1. **Pick the template.** If the user gave a name, use it. Otherwise list the
-<<<<<<< HEAD
-   templates in `COUNCIL_PLUGIN_ROOT/templates/` with their `description`, and
-   ask which to use (default `software-team`).
-=======
-   templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description` as
+   templates in `COUNCIL_PLUGIN_ROOT/templates/` with their `description` as
    text, then ask which to use with the **AskUserQuestion** tool: one question,
    up to four template options — `software-team` first, labeled
    `(Recommended)` — each option's description taken from the template's
@@ -80,7 +92,6 @@ Create or recreate `.council/` from a template. No task runs.
    above keeps the rest visible and the user picks an unlisted one by typing
    its name via "Other". (If the tool is unavailable, ask in plain
    conversation; default `software-team`.)
->>>>>>> 7b904be4639d5c5285fed35d190f8eba18167efe
 2. **Guard existing council.** If `.council/council.yaml` already exists, warn
    that recreating will overwrite **`council.yaml` and the `seats/` copies** (where
    hand-edits live) and confirm before proceeding — ask with the
@@ -88,14 +99,19 @@ Create or recreate `.council/` from a template. No task runs.
    first and **Recreate — overwrite roster and seats** second (plain
    conversation if the tool is unavailable). Do not clobber without a yes.
    Recreate is **scoped to those two**: it **never deletes `memory/`, `records/`,
-   or `scratch/`**. The council's accumulated memory and audit trail are its most
-   valuable, least-recreatable state, so a re-convene rebuilds the roster *around*
-   them — it does not reset the council. (Even a confirmed recreate leaves memory
-   and records intact; a user who truly wants a clean slate removes `.council/` by
-   hand.)
+   `scratch/`, `initiatives/`, or the `active-initiative` pointer**. The council's
+   accumulated memory, audit trail, and in-flight initiatives are its most valuable,
+   least-recreatable state, so a re-convene rebuilds the roster *around* them — it
+   does not reset the council. (Even a confirmed recreate leaves memory, records,
+   and initiatives intact; a user who truly wants a clean slate removes `.council/`
+   by hand.) The active-initiative pointer lives in its **own file**
+   (`.council/active-initiative`), deliberately **not** a `council.yaml` field —
+   `council.yaml` is rewritten on recreate, so a pointer kept there would be
+   silently clobbered while the `initiatives/` tree it names survived.
 3. **Create any missing tree dirs** — `mkdir -p`, never destructive:
-   `.council/seats/`, `.council/memory/`, `.council/scratch/`, `.council/records/`.
-   Existing `memory/` and `records/` content is left untouched (step 2).
+   `.council/seats/`, `.council/memory/`, `.council/scratch/`, `.council/records/`,
+   `.council/initiatives/`. Existing `memory/`, `records/`, and `initiatives/`
+   content is left untouched (step 2).
 4. **Write `.council/council.yaml`** from the chosen template
    (`COUNCIL_PLUGIN_ROOT/templates/<name>.yaml`).
 5. **Copy the seats.** For each seat in the template's `seats:` list, copy
@@ -148,6 +164,21 @@ workers, no writes.
    The example above sets no `max_wall_seconds`, so the banner omits it; it does set
    `memory_budget` (the default templates do), so ` · memory 8k` shows. Keep it to the
    table plus the header — no commentary unless the user asks.
+4. **Active initiative (only if one exists).** If `.council/active-initiative`
+   names a slug whose `.council/initiatives/<slug>/` exists, print one line under
+   the table: the slug, which artifacts exist (`BRIEF` and/or `ROADMAP`), and — when
+   `ROADMAP.md` is present — the task progress (`<done>/<total>` from the task
+   checkboxes). For example:
+
+   ```
+   Initiative: distillation-vs-scratch — BRIEF ✓ · ROADMAP ✓ (2/7 tasks)
+   ```
+
+   Fall back gracefully: no pointer or no `initiatives/` content → print nothing
+   (or, if the user asked specifically about initiatives, say there is no active
+   initiative and to run `/council meeting --frame "<question>"`). A stale pointer
+   (names a slug with no directory) is treated as "no active initiative", not an
+   error.
 
 ---
 
@@ -333,6 +364,228 @@ turn or two; a bounded implementation grinds for many.
 
 ---
 
+## Initiative tier: `frame` & `plan` modes
+
+A **long-horizon initiative** takes an under-specified goal, interrogates it into
+a well-posed problem, and decomposes that into an ordered plan — then carries both
+across sessions. It is **not** a new pair of verbs: it is two **modes** layered on
+the verbs you already have, so the surface stays four verbs.
+
+- **`meeting --frame "<question>"`** — a `meeting` with an *inverted* objective.
+  The table's job is to surface what is unknown, unstated, or ambiguous, **not** to
+  answer. On conclusion the chair writes a **`BRIEF.md`** (a framed problem), not a
+  verdict.
+- **`work --plan`** — a `work` session whose objective is to *decompose*. The
+  decomposer drafts, the table red-teams the decomposition, the chair writes a
+  **`ROADMAP.md`** (phases → tasks with dependencies and acceptance criteria). It
+  produces a document, not code, so it runs **without a worktree**.
+
+These reuse the `meeting` and `work` machinery almost entirely; only the objective
+and the output artifact change. Three rules are load-bearing and apply to both:
+
+1. **Chair writes the artifact, into the main `.council/`.** Seats contribute
+   analysis only (they are read-only, exactly as in `meeting`); the **chair** writes
+   `BRIEF.md`/`ROADMAP.md` at synthesis, into the main `.council/initiatives/<slug>/`
+   — never a seat, never inside a worktree. (A doc both *read on entry* and
+   *written on exit* by an autonomous loop must stay chair-mediated, like memory.)
+2. **Every revision is also an immutable record.** Each `frame`/`plan` session
+   writes a normal `records/<id>.md` (`Mode: frame` or `Mode: plan`) capturing the
+   deliberation and its dissents, and the artifact's `## Revisions` log back-links
+   it. The evolving doc is the *current* state; the records are its *history* — so
+   auditability survives in-place edits.
+3. **The artifacts are injected as pointers, read on demand** — like the memory
+   manifest, never their full bodies in every spawn (see *Memory injection*).
+
+### Resolving the active initiative
+
+The active initiative is named by `.council/active-initiative` (one line: a slug).
+Each mode resolves which initiative it touches in this order: (1) an explicit
+`--initiative <slug>` (or trailing slug arg) wins; (2) else the
+`.council/active-initiative` pointer; (3) else, if exactly one initiative exists,
+use it; (4) else — zero initiatives, or several with no pointer/arg — `frame`
+**creates** one (slug = kebab-case of the question) and `plan` **stops** and tells
+the user to `frame` first (or to pass `--initiative`). A successful `frame`/`plan`
+**sets** the pointer to the initiative it touched. A pointer naming a missing
+directory is treated as "no active initiative", never an error.
+
+### Mode: `meeting --frame "<question>"`
+
+Run the **Verb: meeting** loop exactly — all seats, sequential on the shared
+scratchpad, per-round `AskUserQuestion` pause, the user concludes — with these
+differences:
+
+- **Session id / scratchpad header** use `frame` in place of `meeting`
+  (`# Scratchpad — frame`).
+- **Inverted objective, injected into every seat's prompt** (in addition to the
+  meeting read-only line): *"This is a framing session. Your job is to surface what
+  is unknown, unstated, ambiguous, or assumed about this goal — the questions that
+  must be answered before it is well-posed — not to answer it. Propose scoping
+  questions, hidden assumptions, missing definitions, and the criteria by which
+  'done' should be judged."* The heterogeneous roster pays off directly here:
+  `security-engineer` probes the trust boundary, `qa-engineer`/`methodologist` hunt
+  unstated edge cases and confounders, `product-manager` asks whether it is the
+  right problem, `researcher` flags the gap in what is actually known.
+- **Conclusion (diverge → converge).** The chair synthesizes a single **sharp,
+  well-posed question** plus the framed problem — it must **not** broaden the
+  question into a blander consensus one. Unresolved scoping traps are **preserved as
+  `## Open questions`**, not flattened.
+- **Resolve the slug** (see above). If `initiatives/<slug>/BRIEF.md` already
+  exists, this is a **revision**: confirm first with `AskUserQuestion`
+  (`Cancel — keep the current brief` / `Revise — update the brief`), like the
+  `convene` recreate guard; never silently overwrite. On revision, **append** a
+  `## Revisions` line and edit in place — do not discard prior sections without the
+  deliberation supporting it.
+- **Write outputs:** the chair writes `.council/initiatives/<slug>/BRIEF.md`
+  (pinned format below) into the main tree, writes the immutable
+  `records/<id>.md` (`Mode: frame`), archives the scratchpad to
+  `records/<id>.scratch.md`, runs the **Initiative conformance check**, sets
+  `.council/active-initiative` to `<slug>`, then **commits** the brief, the record,
+  the archived scratch, and the pointer. `frame` needs no git repo and no
+  worktree (same as `meeting`/`info`).
+
+### Mode: `work --plan`
+
+Run the **Verb: work** take-turns loop (chair-routed, no user input, bounded by
+`work_budget`) with these differences:
+
+- **No worktree.** `plan` writes a document, not code, so there is no
+  `git worktree add`, no merge handoff, and no isolation step. The scratchpad
+  header uses `# Scratchpad — plan`.
+- **Resolve the active initiative** (see above) and **require an existing
+  `BRIEF.md`**. If there is none, stop and tell the user to
+  `/council meeting --frame "<question>"` first.
+- **Draft-then-review loop.** Turn 1: the **decomposer** drafts the roadmap from
+  the brief — this is the chair when the chair is a planning persona
+  (`research-lead`), otherwise the chair assigns the most decomposition-minded seat.
+  Inject: *"Draft a ROADMAP from this BRIEF: phases → tasks with stable IDs,
+  explicit dependencies (or `none`) so independent tasks are identifiable, and one
+  acceptance criterion per task — for research, the evidence that would settle or
+  falsify each sub-question."* Following turns: the other seats **red-team the
+  decomposition** — missing dependencies, vague or unfalsifiable acceptance
+  criteria, wrong phase cuts, tasks that are not independently answerable. The chair
+  revises and decides done (or budget/scratch/user-stop fires, as in `work`).
+- **Write outputs:** the chair writes `.council/initiatives/<slug>/ROADMAP.md`
+  (pinned format below) into the main tree, writes the immutable `records/<id>.md`
+  (`Mode: plan`, dissents preserved on contested decompositions), archives the
+  scratchpad, runs the **Initiative conformance check**, updates
+  `.council/active-initiative`, then **commits** the roadmap, record, archived
+  scratch, and pointer — all on the current branch (no work branch, since there is
+  no worktree).
+
+### `BRIEF.md` (pinned format)
+
+```
+# Brief — <prose title for the initiative>
+
+<1-3 sentence framing of what this initiative is and why it exists.>
+
+- **Initiative:** <slug>
+- **Opened:** <YYYY-MM-DD HH:MM>
+- **Status:** <forming | framed | planned | active | settled | abandoned>
+- **Chair:** <chair seat name>
+
+## Question
+<the single sharp, well-posed question this initiative answers.>
+
+## Scope
+<what is in scope.>
+
+## Out of scope
+<what is explicitly excluded — required; the literal `none` if nothing.>
+
+## Assumptions
+- <assumption>
+
+## Conventions (locked)
+<operational definitions, units/notation, inclusion/exclusion criteria, interfaces,
+or source-quality bar that must stay fixed downstream. Frozen once Status leaves
+`forming`: a later change appends a Revisions entry, it does not overwrite.>
+
+## Success criteria
+- [ ] <a check that can be judged true/false — for research, the evidence that would settle the question.>
+
+## Open questions
+- <an unresolved scoping trap the table surfaced — or the literal `none`.>
+
+## Revisions
+- <YYYY-MM-DD HH:MM> framed → record: `records/<id>.md`
+```
+
+### `ROADMAP.md` (pinned format)
+
+```
+# Roadmap — <prose title for the initiative>
+
+- **Initiative:** <slug>
+- **Brief:** `BRIEF.md`
+- **Updated:** <YYYY-MM-DD HH:MM>
+- **Chair:** <chair seat name>
+
+## Phase 1 — <phase title>
+### T1.1 — <task / sub-question title>
+- **Depends on:** <comma-separated task IDs | none>
+- **Acceptance:** <the single criterion that discharges this task — for research, what evidence settles or falsifies it.>
+- [ ] open
+
+### T1.2 — <task title>
+- **Depends on:** T1.1
+- **Acceptance:** <criterion>
+- [ ] open
+
+## Phase 2 — <phase title>
+### T2.1 — <task title>
+- **Depends on:** T1.2
+- **Acceptance:** <criterion>
+- [ ] open
+
+## Revisions
+- <YYYY-MM-DD HH:MM> drafted → record: `records/<id>.md`
+```
+
+Task IDs are `T<phase>.<seq>` (e.g. `T1.1`), stable for the life of the initiative
+— never reused or renumbered (renumbering would dangle a later discharge link). A
+task's status line is `- [ ] open` until it is discharged; discharging a task is the
+deferred `work`-against-plan step (below), which will flip it to
+`- [x] done → record: \`records/<id>.md\``. `/council info` counts these checkboxes
+for its `<done>/<total>` progress.
+
+### Initiative conformance check
+
+Run **before archiving the scratchpad** (so it stays re-checkable), exactly like the
+**Post-synthesis conformance check**. The dissent gate (Gate 1) applies to the
+`frame`/`plan` **record** unchanged. Two added gates and a closure check:
+
+- **Gate 3 — `BRIEF` is gateable.** `BRIEF.md` has `## Scope`, `## Out of scope`
+  (non-empty or the literal `none`), `## Success criteria` with **≥1** `- [ ]`/`- [x]`
+  line (a brief with no success criteria **fails**), `## Open questions` (non-empty or
+  `none`), and a `## Revisions` line; `Status` is one of the enum values; once
+  `Status` ≠ `forming`, `## Conventions (locked)` is present and non-empty.
+- **Gate 4 — every `ROADMAP` task carries acceptance + a dependency edge.** Each
+  `### T<phase>.<seq>` has a unique ID, a `- **Depends on:**` value that is the
+  literal `none` or a comma-separated list of IDs that each resolve to a real task in
+  this file (no dangling edge — and the dependency graph must be acyclic), a non-empty
+  `- **Acceptance:**` line, and a status checkbox.
+- **Closure — record ↔ artifact (bidirectional, mechanical).** The `frame`/`plan`
+  record ends with a closure line — `→ brief: \`initiatives/<slug>/BRIEF.md\`` (frame)
+  or `→ roadmap: \`initiatives/<slug>/ROADMAP.md\`` (plan) — and the artifact's newest
+  `## Revisions` line names this record as `→ record: \`records/<id>.md\``. Assert both
+  exist and point at each other, the same way Gate 2 closes record ↔ memory. (The
+  record's existing `→ memory updated:` line is still required; for `frame`/`plan` it
+  is usually `none`.)
+
+### Deferred (a planned follow-up, not in this version)
+
+- **`STATE.md` continuity** — a per-initiative ledger (current phase, completed
+  tasks, next ready task, open threads) read on entry and updated on session end. For
+  now, the `BRIEF`/`ROADMAP` files and the discharging records carry the state.
+- **`work`-against-plan** — `work` picking the next ready `ROADMAP` task (deps
+  satisfied), running its loop against that task, and binding the discharging
+  `records/<id>.md` back to the task (flipping its checkbox). This is the step that
+  needs the record↔task gate; until it lands, tasks stay `- [ ] open` and are
+  discharged by ordinary `work "<task>"` sessions tracked by hand.
+
+---
+
 ## Spawning a seat
 
 Spawn each seat with the host's worker tool:
@@ -438,6 +691,13 @@ Uncapped, the whole manifest goes in; at one short line per topic it is bounded 
 topic count, which itself grows sub-linearly because topics are reused and updated
 (per the **topic naming** rule below), not spawned per session.
 
+**Initiative docs follow the same discipline.** When a session touches an active
+initiative, inject the **paths** of its `BRIEF.md`/`ROADMAP.md` (and a one-line
+note that they exist), not their bodies — the decomposer in a `plan` session Reads
+`BRIEF.md` on demand, just as a seat Reads a memory topic. Inlining the full
+evolving docs into every spawn would reintroduce the unbounded-context growth the
+manifest design exists to prevent.
+
 ## Synthesis contract (the chair's output)
 
 Whenever the chair synthesizes, produce:
@@ -489,10 +749,14 @@ session, distinct from the slug. Concrete template (see
 → memory updated: `memory/<topic>.md`
 ```
 
-The six bold fields are all required and in this order. `Mode` is `meeting` or
-`work`. `Concluded` uses `YYYY-MM-DD HH:MM`. Each follow-up owner is a **full
-seat name** from `council.yaml` (e.g. `qa-engineer`, not `qa`), or the literal
-`user` for a handoff the council defers to the human (e.g. the merge decision).
+The six bold fields are all required and in this order. `Mode` is `meeting`,
+`work`, `frame`, or `plan`. `Concluded` uses `YYYY-MM-DD HH:MM`. Each follow-up
+owner is a **full seat name** from `council.yaml` (e.g. `qa-engineer`, not `qa`),
+or the literal `user` for a handoff the council defers to the human (e.g. the merge
+decision). A `frame`/`plan` record additionally carries one initiative-closure line
+after `→ memory updated:` — `→ brief: \`initiatives/<slug>/BRIEF.md\`` for `frame`,
+`→ roadmap: \`initiatives/<slug>/ROADMAP.md\`` for `plan` — that the **Initiative
+conformance check** closes against the artifact's `## Revisions` back-link.
 
 The trailing `→ memory updated:` cross-links every memory topic this session
 wrote, **one line per topic**:

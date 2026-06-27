@@ -1,0 +1,13 @@
+# Research framing + planning council. Convene with `/council convene research-lab`.
+# Built for the initiative modes: `meeting --frame "<question>"` interrogates a
+# vague question into a BRIEF, then `work --plan` decomposes it into a ROADMAP of
+# sub-questions before any deep research begins.
+name: research-lab
+description: Frame and plan a research question — scope, evidence standards, sub-questions
+chair: research-lead
+seats: [research-lead, researcher, methodologist, critic, journalist]
+work_budget:
+  max_turns: 12          # hard cap on take-turns rounds in `work` (incl. `--plan`)
+  scratch_max_bytes: 200000  # hard stop trigger: halt if the scratchpad grows past this
+memory_budget:
+  manifest_max_bytes: 8000   # cap on the memory manifest injected into each spawn; unset/0 = uncapped

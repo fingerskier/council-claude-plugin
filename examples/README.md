@@ -23,10 +23,16 @@ sample-council/
 │   └── testing-standards.md
 ├── scratch/                                  # ephemeral per-session working memory (gitignored)
 │   └── 20260605-141200-rate-limiter.md       #   shown mid-meeting, Round 2 pending
-└── records/                                  # durable synthesized outputs, kept + committed
-    ├── 20260603-093000-adopt-job-queue.md               #   Mode: meeting
-    ├── 20260606-101500-extract-retry-helper.md          #   Mode: work
-    └── 20260606-101500-extract-retry-helper.scratch.md  #   that work session's archived scratchpad
+├── records/                                  # durable synthesized outputs, kept + committed
+│   ├── 20260603-093000-adopt-job-queue.md               #   Mode: meeting
+│   ├── 20260606-101500-extract-retry-helper.md          #   Mode: work
+│   ├── 20260606-101500-extract-retry-helper.scratch.md  #   that work session's archived scratchpad
+│   ├── 20260610-094500-frame-distillation.md            #   Mode: frame (wrote the BRIEF)
+│   └── 20260611-100000-plan-distillation.md             #   Mode: plan  (wrote the ROADMAP)
+└── initiatives/                              # long-horizon initiatives (evolving, chair-written)
+    └── distillation-vs-scratch/
+        ├── BRIEF.md                          #   framed problem (from `meeting --frame`)
+        └── ROADMAP.md                        #   decomposition  (from `work --plan`)
 ```
 
 Format conventions illustrated here:
@@ -50,10 +56,20 @@ Format conventions illustrated here:
   `extract-retry-helper` work session's `.scratch.md`).
 - **Record** is the durable synthesis: a single recommendation, the reasoning
   trail, and **preserved dissent**. Named like the scratchpad it came from. The
-  `Mode` field is `meeting` or `work`; both share the format. The work example
-  also shows a `user`-owned follow-up — `work` hands the merge to the human
-  rather than auto-merging.
+  `Mode` field is `meeting`, `work`, `frame`, or `plan`; all share the format. The
+  work example also shows a `user`-owned follow-up — `work` hands the merge to the
+  human rather than auto-merging.
+- **Initiative** is the long-horizon tier: a `BRIEF.md` (framed problem, written by
+  a `meeting --frame` session) and a `ROADMAP.md` (decomposition, written by a
+  `work --plan` session), evolving across sessions under `initiatives/<slug>/`.
+  They are **chair-written into the main `.council/`** and each revision is also an
+  immutable record — `frame` wrote the BRIEF, `plan` wrote the ROADMAP — so the
+  evolving docs stay auditable. Note the `Conventions (locked)` block in the BRIEF
+  (the definitions held fixed downstream) and the `T<phase>.<seq>` task IDs with
+  dependencies + one acceptance criterion each in the ROADMAP.
 
 The cross-links are intentional: the `job-queue` meeting produced both
 `records/20260603-093000-adopt-job-queue.md` and the `memory/job-queue.md` topic
-file, and each points at the other.
+file, and each points at the other. The same closure binds the initiative tier —
+the `frame` record's `→ brief:` line and the BRIEF's `## Revisions` `→ record:`
+line point at each other, as do the `plan` record and the ROADMAP.

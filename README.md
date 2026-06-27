@@ -84,9 +84,10 @@ Inside Claude Code, convene the council:
 ```
 
 It will ask which template to use — `software-team` is the default;
-`c-suite`, `product-engineering-team`, `solo-founder`, `writing-lab`, and
-`hedge-fund-team` are also bundled. Convening stamps a `.council/` directory
-into your folder with editable seat files — the council is now yours to tune.
+`c-suite`, `product-engineering-team`, `solo-founder`, `writing-lab`,
+`hedge-fund-team`, and `research-lab` are also bundled. Convening stamps a
+`.council/` directory into your folder with editable seat files — the council is
+now yours to tune.
 
 Check the roster and hold your first meeting:
 
@@ -162,17 +163,20 @@ meeting or work session is invoked.
 ## Commands
 
 ```
-/council convene [template]    # create/recreate .council/ from a template; then edit the files
-/council info                  # print a concise table of the convened council's seats
-/council meeting "<task>"      # human-in-the-loop round-table; you conclude; chair synthesizes
-/council work "<task>"         # autonomous take-turns in a worktree until the chair calls it done
+/council convene [template]        # create/recreate .council/ from a template; then edit the files
+/council info                      # print a concise table of the convened council's seats
+/council meeting "<task>"          # human-in-the-loop round-table; you conclude; chair synthesizes
+/council meeting --frame "<q>"     # scoping mode: surface the unknowns; chair writes a BRIEF
+/council work "<task>"             # autonomous take-turns in a worktree until the chair calls it done
+/council work --plan               # decomposition mode: turn the active BRIEF into a reviewed ROADMAP
 ```
 
 - **`convene`** stamps a template into a per-project `.council/` directory. From
   then on the council is local, editable files you own — tweak a seat's voice,
   add or drop a seat, retune the chair or the work budget.
 - **`info`** prints the convened roster — seat, title, voice, with the chair
-  marked — straight from the files. Read-only; it runs nothing.
+  marked — straight from the files, plus the active initiative if there is one.
+  Read-only; it runs nothing.
 - **`meeting`** keeps you in the loop: seats speak in turn on a shared
   scratchpad, you steer each round, and when you conclude the chair synthesizes
   the conversation into `.council/records/`.
@@ -182,6 +186,28 @@ meeting or work session is invoked.
   The chair never auto-merges — it hands you the worktree and the merge commands
   to run when you're ready.
 
+### Initiative modes — `--frame` and `--plan`
+
+For a long-horizon initiative — a research question, a project — two **modes**
+ride the existing verbs (the surface stays four verbs):
+
+- **`meeting --frame "<question>"`** runs a meeting with an *inverted* objective:
+  the table surfaces what's unknown, unstated, or assumed instead of answering, and
+  the chair writes a **`BRIEF.md`** (scope, locked conventions, success criteria)
+  under `.council/initiatives/<slug>/`. Great for sharpening a vague research
+  question before you spend effort on it.
+- **`work --plan`** decomposes the active BRIEF: a planner drafts, the table
+  red-teams the breakdown, and the chair writes a **`ROADMAP.md`** (phases → tasks
+  with dependencies and one acceptance criterion each). It writes a document, so it
+  runs without a worktree.
+
+The **`research-lab`** template (chair `research-lead`, plus `researcher`,
+`methodologist`, `critic`, `journalist`) is tuned for exactly this: frame a research
+question, then plan it. Both modes write a normal record per session, so the
+evolving docs stay auditable. (Carrying explicit task state across sessions and
+running `work` directly against a ROADMAP task are a planned follow-up — see
+[PLAN.md](./PLAN.md).)
+
 ## Layout
 
 ```
@@ -190,7 +216,7 @@ meeting or work session is invoked.
 commands/council.md                  # slash-command entry
 skills/council-orchestrator/SKILL.md # the orchestrator: routing, protocols, synthesis
 personalities/*.md                   # the seat library (extensible)
-templates/*.yaml                     # presets: software-team, product-engineering-team, c-suite, solo-founder, writing-lab, hedge-fund-team
+templates/*.yaml                     # presets: software-team, product-engineering-team, c-suite, solo-founder, writing-lab, hedge-fund-team, research-lab
 ```
 
 The council it creates lives under `.council/` in your working repo:
@@ -202,7 +228,9 @@ The council it creates lives under `.council/` in your working repo:
 ├── memory/*.md       # long-term council memory, one file per topic
 ├── scratch/          # ephemeral shared scratchpads (gitignored)
 ├── records/          # durable synthesized outputs
-└── worktrees/        # git worktrees for work sessions (gitignored)
+├── worktrees/        # git worktrees for work sessions (gitignored)
+├── active-initiative # one line: the active initiative's slug (committed; optional)
+└── initiatives/      # long-horizon initiatives: <slug>/BRIEF.md + <slug>/ROADMAP.md
 ```
 
 ## Adding a seat
@@ -245,6 +273,9 @@ but it is a soft guardrail enforced in the prompt, **not a security boundary**.
 All four verbs — `convene`, `info`, `meeting`, `work` — are implemented and
 dogfooded (this repo runs its own council; see [.council/](./.council/) for real
 records and memory). Worktree isolation, the five `work` stop triggers, and the
-two-tier memory manifest are in place. Per-seat model routing is **declined** and
-the `convene` recreate-merge is **deferred**; see PLAN.md §9 for the full
-phasing and dispositions.
+two-tier memory manifest are in place. The initiative modes — `meeting --frame`
+(writes a `BRIEF`) and `work --plan` (writes a `ROADMAP`) — plus the `research-lab`
+template land the framing and decomposition tier; `STATE.md` continuity and running
+`work` directly against a `ROADMAP` task are a planned follow-up. Per-seat model
+routing is **declined** and the `convene` recreate-merge is **deferred**; see
+PLAN.md §9 for the full phasing and dispositions.

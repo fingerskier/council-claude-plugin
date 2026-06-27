@@ -123,8 +123,13 @@ The surface is four verbs. `convene` sets up; `info` reports the roster; `meetin
 /council convene [template]    # create/recreate .council/ from a template; then edit the files
 /council info                  # show a concise table of the convened council's seats
 /council meeting "<task>"      # human-in-the-loop round-table; you conclude; chair synthesizes
+/council meeting --frame "<q>" # scoping mode: surface the unknowns; chair writes a BRIEF
 /council work "<task>"         # autonomous take-turns in a worktree until the chair calls it done
+/council work --plan           # decomposition mode: turn the active BRIEF into a reviewed ROADMAP
 ```
+
+`--frame` and `--plan` are **modes** of the existing `meeting` and `work` verbs,
+not new verbs — the surface stays four (see §10 decision #6).
 
 ### `/council convene [template]`
 
@@ -179,6 +184,21 @@ This scales: a quick gut-check resolves in a turn or two and reads like a fast m
 - On finish, the chair **synthesizes** the outcome and **records** it to `.council/records/`. The chair does **not** auto-merge: it **declares the work done and leaves the worktree branch in place**; the **user asks for the merge** when they're ready (decision #4). The chair hands over the exact merge/cleanup commands.
 
 - Use for: anything from a quick breadth scan to a bounded implementation/refactor/research task you want the council to grind on unattended.
+
+### Initiative modes — `frame` & `plan`
+
+A **long-horizon initiative** (a research question, a project) wants three things the four verbs didn't give it: interrogate an under-specified goal into a well-posed problem, decompose it into an ordered plan, and carry both across sessions. Rather than grow the surface with new verbs, two **modes** ride the existing verbs (decision #6):
+
+- **`meeting --frame "<question>"`** — a `meeting` with an *inverted objective*. The table surfaces what is unknown, unstated, or assumed instead of answering; the chair converges to one sharp question and writes a **`BRIEF.md`** (scope, locked conventions, success criteria) under `.council/initiatives/<slug>/`, preserving unresolved scoping traps as open questions. Reuses the meeting loop wholesale (all seats, scratchpad, per-round pause, you conclude); only the objective and the output artifact change.
+- **`work --plan`** — a `work` session whose objective is to *decompose* the active `BRIEF.md`. A planner drafts, the table red-teams the breakdown (missing deps, vague/unfalsifiable criteria, wrong cuts), the chair writes a **`ROADMAP.md`** (phases → `T<phase>.<seq>` tasks, dependencies or `none`, one acceptance criterion each). It produces a document, not code, so it runs **without a worktree**.
+
+The initiative tier holds three invariants that keep it consistent with the rest of the design:
+
+1. **Chair-written into the main `.council/`.** Seats stay read-only; the chair writes `BRIEF`/`ROADMAP` at synthesis — never a seat, never inside a worktree (the worktree exists to isolate *code*, and an audit/working doc must not be trapped on an unmerged branch or written by the loop that reads it).
+2. **Every revision is also an immutable record.** Each `frame`/`plan` session writes a normal `records/<id>.md` (`Mode: frame|plan`, dissents preserved); the artifact's `## Revisions` log back-links it. The evolving doc is current state, the records are its history, so in-place edits stay auditable. Conformance adds Gate 3 (BRIEF has success criteria), Gate 4 (every task has acceptance + a resolving dependency edge, graph acyclic), and a record↔artifact closure mirroring the existing record↔memory one.
+3. **Injected as pointers, read on demand** — like the memory manifest, never full bodies in every spawn.
+
+The active initiative is named by a one-line **`.council/active-initiative`** pointer file — deliberately *not* a `council.yaml` field, which `convene` rewrites on recreate (decision #2). The **`research-lab`** template (chair `research-lead`, plus `researcher`, `methodologist`, `critic`, `journalist`) is the first-class instance: frame a research question, then plan it. **Deferred** (a planned follow-up, not this version): a per-initiative `STATE.md` continuity ledger, and running `work` directly against the next ready `ROADMAP` task with a record↔task binding (decisions #4, #7).
 
 ### Shared mechanics
 
@@ -265,6 +285,23 @@ Dissent preservation is the point of a council — a synthesis that erases disag
   cannot add panels or custom rendering to Claude Code's TUI, which is what
   motivates the pinned companion TUI below
 
+**Phase 6 — initiative tier (frame & plan modes)**
+- `meeting --frame "<question>"` — inverted-objective scoping that writes a pinned
+  `BRIEF.md` under `.council/initiatives/<slug>/`; `work --plan` — decompose-then-review
+  that writes a pinned `ROADMAP.md` (no worktree). Modes on the existing verbs, not new
+  verbs (decision #6); surface stays four.
+- `convene` scaffolds + preserves `initiatives/` and the `active-initiative` pointer on
+  recreate; `info` reports the active initiative + task progress.
+- conformance extends the two-gate discipline: Gate 3 (BRIEF success criteria), Gate 4
+  (ROADMAP per-task acceptance + acyclic dependency edges), and a record↔artifact closure
+  alongside the existing record↔memory one. Every `frame`/`plan` session also writes an
+  immutable `Mode: frame|plan` record, so the evolving docs stay auditable.
+- `research-lab` template + `research-lead`/`methodologist` personas as the first-class
+  research instance.
+- **deferred to a follow-up:** `STATE.md` continuity ledger (#7) and `work`-against-plan
+  task execution with the record↔task binding (#4) — landed the three framing/decomposition
+  artifacts first, exactly as the issue sequenced it.
+
 **Pinned for later — companion TUI (file-watching dashboard).** A standalone
 terminal UI that *watches* a convened council rather than extending Claude
 Code's interface. The data layer already supports it with no protocol changes:
@@ -290,6 +327,8 @@ read-only dashboard proves itself.
 3. **`work` stop triggers → any of five.** The run stops on whichever comes first: **chair says done**, **budget exceeded** (`max_turns`), **scratchpad size limit** (`scratch_max_bytes`), **wall-clock** (`max_wall_seconds`, optional — armed only when set `> 0`, checked at turn boundaries), or **user requests stop**.
 4. **Worktree merge → chair declares done, user asks for merge.** No auto-merge. The chair finishes, leaves the branch/worktree in place, and the user merges when ready (the chair hands over the commands).
 5. **Memory → one MD file per topic.** Not an append-only log. After a meeting or work session, the chair creates or updates the appropriately named topic file under `.council/memory/`. Injection is **two-tier** — a bounded manifest of pointers into every spawn, full files Read on demand (see SKILL *Memory injection (two-tier)*; optional `memory_budget.manifest_max_bytes`) — so memory stays cheap to carry as topics accumulate without dropping any from view. (A semantic index over memory — embeddings + a vector store such as FAISS or libsql — was weighed and **declined**: it forfeits the plugin's zero-code property, adds a stale-by-construction derived artifact over user-edited, git-tracked files, and trades away the full recall a council's small, high-value memory depends on. Structured/queryable memory remains a possible later evolution only if a real council outgrows the manifest — and even then libsql/sqlite-vec over FAISS, with markdown staying source of truth.)
+6. **Initiative tier → modes, not verbs.** `frame` and `plan` ship as `--frame`/`--plan` modes of `meeting`/`work`, keeping the surface at four verbs (the "intentionally tiny surface" value, §1). The chair writes `BRIEF`/`ROADMAP` into the main `.council/` (never a seat, never a worktree); each revision is also an immutable `Mode: frame|plan` record, so the evolving docs stay auditable without a parallel snapshot system. The active-initiative pointer is its own file (`.council/active-initiative`), **not** a `council.yaml` field — recreate rewrites `council.yaml`, so a pointer there would dangle (decision #1). The plan artifact is named **`ROADMAP.md`**, not `PLAN.md`, to avoid colliding with this design doc. (Considered and declined for now: `frame`/`plan` as full new verbs — rejected as surface bloat for what are objective-variations of meeting/work; and a single `initiative` verb with sub-actions — rejected for adding a sub-command grammar the plugin doesn't otherwise have.)
+7. **`STATE.md` continuity & `work`-against-plan → deferred.** Land the framing (`BRIEF`) and decomposition (`ROADMAP`) artifacts first; a per-initiative `STATE.md` ledger and running `work` against the next ready `ROADMAP` task (with the record↔task binding gate) are a planned follow-up. The framing/planning value the owner asked for is delivered without them — `BRIEF`/`ROADMAP` persist and are read on later sessions — and they are where the densest under-specification (a deterministic task-pick, a third cross-link to gate, a done-vs-merged distinction) lives, so they earn their own pass.
 
 ---
 
