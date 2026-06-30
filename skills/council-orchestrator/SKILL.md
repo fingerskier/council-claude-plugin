@@ -53,9 +53,13 @@ explicitly requests it.
 
 ## Preflight (every verb except `convene`)
 
-Read `.council/council.yaml`. If it does not exist, tell the user the council
-hasn't been convened yet and to run `/council convene [template]`, then stop.
-Otherwise note the `chair`, the `seats`, and `work_budget`.
+**Anchor the project root** (`ROOT="$(pwd)"`, or the absolute path the host
+reports) and address every `.council/…` read and write as `$ROOT/.council/…`, never
+a bare relative path — the Bash tool persists cwd across calls, so a relative path
+is only safe while cwd happens to be the repo root. Read `$ROOT/.council/council.yaml`.
+If it does not exist, tell the user the council hasn't been convened yet and to run
+`/council convene [template]`, then stop. Otherwise note the `chair`, the `seats`,
+and `work_budget`.
 
 The **chair** is whichever seat `council.yaml` names. The chair routes (picks
 which seats are relevant, who speaks/acts next) and synthesizes. Read the
@@ -67,6 +71,21 @@ chair's persona from `.council/seats/<chair>.md`.
 
 Create or recreate `.council/` from a template. No task runs.
 
+**Anchor the project root first (cwd-drift guard).** Before anything else,
+capture the working-repo root as an absolute path and pin it for the whole verb —
+e.g. `ROOT="$(pwd)"` in the host shell (or note the absolute path the host
+reports). Every `.council/…` artifact below is written under **`$ROOT/.council/…`**,
+never a bare relative `.council/…`. Why: picking the template (step 1) reads
+`COUNCIL_PLUGIN_ROOT/templates/`, and any `cd`/list/grep into the plugin tree can
+drift the host shell's cwd there — and the Bash tool **persists cwd across calls** —
+so a later relative `mkdir -p .council/…` or `cp … .council/…` would silently stamp
+the council into the **read-only plugin dir** instead of the repo. Capturing `$ROOT`
+*before* step 1 (while cwd is still the repo) and addressing every write absolutely
+makes the writes immune to that drift. **Invariant:** the plugin `templates/` and
+`personalities/` are read-only library material — **nothing is ever written under
+`COUNCIL_PLUGIN_ROOT`**. (The `work` verb already pins worktrees by absolute path
+for exactly this reason; convene gets the same rigor.)
+
 1. **Pick the template.** If the user gave a name, use it. Otherwise list the
    templates in `COUNCIL_PLUGIN_ROOT/templates/` with their `description` as
    text, then ask which to use with the host's structured question tool when
@@ -76,7 +95,7 @@ Create or recreate `.council/` from a template. No task runs.
    above keeps the rest visible and the user picks an unlisted one by typing its
    name via "Other". (If structured questions are unavailable, ask in plain
    conversation; default `software-team`.)
-2. **Guard existing council.** If `.council/council.yaml` already exists, warn
+2. **Guard existing council.** If `$ROOT/.council/council.yaml` already exists, warn
    that recreating will overwrite **`council.yaml` and the `seats/` copies** (where
    hand-edits live) and confirm before proceeding — ask with the
    **AskUserQuestion** tool, options **Cancel — keep the current council**
@@ -89,16 +108,17 @@ Create or recreate `.council/` from a template. No task runs.
    and records intact; a user who truly wants a clean slate removes `.council/` by
    hand.)
 3. **Create any missing tree dirs** — `mkdir -p`, never destructive:
-   `.council/seats/`, `.council/memory/`, `.council/scratch/`, `.council/records/`.
-   Existing `memory/` and `records/` content is left untouched (step 2).
-4. **Write `.council/council.yaml`** from the chosen template
+   `$ROOT/.council/seats/`, `$ROOT/.council/memory/`, `$ROOT/.council/scratch/`,
+   `$ROOT/.council/records/`. Existing `memory/` and `records/` content is left
+   untouched (step 2).
+4. **Write `$ROOT/.council/council.yaml`** from the chosen template
    (`COUNCIL_PLUGIN_ROOT/templates/<name>.yaml`).
 5. **Copy the seats.** For each seat in the template's `seats:` list, copy
-   `COUNCIL_PLUGIN_ROOT/personalities/<seat>.md` to `.council/seats/<seat>.md`.
+   `COUNCIL_PLUGIN_ROOT/personalities/<seat>.md` to `$ROOT/.council/seats/<seat>.md`.
 6. **Leave `memory/` empty.** Memory is one markdown file per topic, created by
    the chair when a meeting or work session concludes — there's nothing to seed
    at convene time. (The directory exists from step 3.)
-7. **Write `.council/.gitignore`** so ephemeral state isn't committed:
+7. **Write `$ROOT/.council/.gitignore`** so ephemeral state isn't committed:
    ```
    scratch/
    worktrees/
