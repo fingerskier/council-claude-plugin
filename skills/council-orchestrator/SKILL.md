@@ -68,19 +68,14 @@ chair's persona from `.council/seats/<chair>.md`.
 Create or recreate `.council/` from a template. No task runs.
 
 1. **Pick the template.** If the user gave a name, use it. Otherwise list the
-<<<<<<< HEAD
-   templates in `COUNCIL_PLUGIN_ROOT/templates/` with their `description`, and
-   ask which to use (default `software-team`).
-=======
-   templates in `${CLAUDE_PLUGIN_ROOT}/templates/` with their `description` as
-   text, then ask which to use with the **AskUserQuestion** tool: one question,
-   up to four template options — `software-team` first, labeled
-   `(Recommended)` — each option's description taken from the template's
+   templates in `COUNCIL_PLUGIN_ROOT/templates/` with their `description` as
+   text, then ask which to use with the host's structured question tool when
+   available: one question, up to four template options — `software-team` first,
+   labeled `(Recommended)` — each option's description taken from the template's
    `description` field. When there are more than four templates, the text list
-   above keeps the rest visible and the user picks an unlisted one by typing
-   its name via "Other". (If the tool is unavailable, ask in plain
+   above keeps the rest visible and the user picks an unlisted one by typing its
+   name via "Other". (If structured questions are unavailable, ask in plain
    conversation; default `software-team`.)
->>>>>>> 7b904be4639d5c5285fed35d190f8eba18167efe
 2. **Guard existing council.** If `.council/council.yaml` already exists, warn
    that recreating will overwrite **`council.yaml` and the `seats/` copies** (where
    hand-edits live) and confirm before proceeding — ask with the

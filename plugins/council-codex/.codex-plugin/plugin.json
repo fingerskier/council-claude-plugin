@@ -1,0 +1,37 @@
+{
+  "name": "council-codex",
+  "version": "0.1.0",
+  "description": "Codex-native Council plugin that convenes personality-seat councils without depending on the Claude plugin manifest.",
+  "author": {
+    "name": "fingerskier"
+  },
+  "homepage": "https://github.com/fingerskier/council-claude-plugin",
+  "repository": "https://github.com/fingerskier/council-claude-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "council",
+    "deliberation",
+    "multi-agent",
+    "orchestration"
+  ],
+  "skills": "../../skills/",
+  "interface": {
+    "displayName": "Council for Codex",
+    "shortDescription": "Convene personality-seat councils in Codex.",
+    "longDescription": "Council for Codex is an orthogonal Codex plugin wrapper around the shared council-orchestrator skill. It convenes project-local .council rosters from bundled templates, runs multi-perspective meetings, and drives bounded work sessions while preserving dissents and durable records.",
+    "developerName": "fingerskier",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write",
+      "Multi-agent"
+    ],
+    "defaultPrompt": [
+      "council convene software-team",
+      "council info",
+      "council meeting \"Should we ship this?\""
+    ],
+    "brandColor": "#4F7CAC"
+  }
+}

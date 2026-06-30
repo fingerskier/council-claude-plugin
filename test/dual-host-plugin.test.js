@@ -37,6 +37,40 @@ test("Codex manifest exposes the shared skill directory", () => {
   assert.equal(Object.hasOwn(manifest, "apps"), false);
 });
 
+test("standalone Codex plugin is exposed through the repo marketplace", () => {
+  const marketplace = readJson(".agents/plugins/marketplace.json");
+  const codexManifest = readJson("plugins/council-codex/.codex-plugin/plugin.json");
+
+  assert.equal(marketplace.name, "fingerskier-council-plugins");
+  assert.equal(marketplace.interface.displayName, "Fingerskier Council Plugins");
+  assert.deepEqual(marketplace.plugins, [
+    {
+      name: "council-codex",
+      source: {
+        source: "local",
+        path: "./plugins/council-codex",
+      },
+      policy: {
+        installation: "AVAILABLE",
+        authentication: "ON_INSTALL",
+      },
+      category: "Productivity",
+    },
+  ]);
+
+  assert.equal(codexManifest.name, "council-codex");
+  assert.equal(codexManifest.version, "0.1.0");
+  assert.equal(codexManifest.skills, "../../skills/");
+  assert.equal(codexManifest.license, "Apache-2.0");
+  assert.equal(codexManifest.author.name, "fingerskier");
+  assert.equal(codexManifest.interface.displayName, "Council for Codex");
+  assert.equal(codexManifest.interface.category, "Productivity");
+  assert.ok(codexManifest.interface.capabilities.includes("Multi-agent"));
+  assert.equal(Object.hasOwn(codexManifest, "hooks"), false);
+  assert.equal(Object.hasOwn(codexManifest, "mcpServers"), false);
+  assert.equal(Object.hasOwn(codexManifest, "apps"), false);
+});
+
 test("Claude and Codex entrypoints delegate to the same orchestrator", () => {
   const claudeManifest = readJson(".claude-plugin/plugin.json");
   const command = readText("commands/council.md");

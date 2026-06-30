@@ -1,0 +1,20 @@
+{
+  "name": "fingerskier-council-plugins",
+  "interface": {
+    "displayName": "Fingerskier Council Plugins"
+  },
+  "plugins": [
+    {
+      "name": "council-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/council-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
