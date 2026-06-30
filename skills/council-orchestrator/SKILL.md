@@ -188,15 +188,30 @@ read-only instruction is **injected into every meeting seat's prompt** (see
       a markdown table, one row per seat (`Seat | Position | Dissent?`), the
       position compressed to a line and the dissent column flagging any seat
       that marked dissent this round. Then **ask for their input** with the
-      **AskUserQuestion** tool — one question ("Where to next?") with two
-      options:
-      - **Another round** — run the next round on the current course;
-      - **Conclude** — end the meeting; the chair synthesizes.
-      A steer, a constraint, or a new question arrives as free text via the
-      built-in "Other" choice — that free text *is* the user input the next
-      round builds on. Append whatever the user chose or typed to the
-      scratchpad under `## User input after Round N`: the selected option and
-      any free text verbatim, so the audit trail captures the steer exactly.
+      **AskUserQuestion** tool.
+
+      The user has **three** real choices, and the prompt must make all three
+      legible — the buried one is the steer, so name it in the question body
+      itself. Use header `"Where next?"` and a question body that spells out the
+      steer path before the options:
+
+      > **To steer the next round, reply in "Other"** — type a response,
+      > constraint, or new question and the council folds it into Round N+1.
+      > Or pick an option:
+
+      Then exactly two options, each description saying what *actually happens*
+      so neither is mistaken for the other:
+      - **Another round** — *Continue with no new input from you; seats build on
+        the discussion so far.*
+      - **Conclude** — *End the meeting now; the chair synthesizes the final
+        recommendation, the preserved dissents, and any open threads.*
+
+      So: **Conclude** ends it; **Another round** continues unchanged; **Other**
+      continues *with* the user's steer — that free text *is* the input Round
+      N+1 builds on, and choosing "Other" never concludes. Append whatever the
+      user chose or typed to the scratchpad under `## User input after Round N`:
+      the selected option and any free text verbatim, so the audit trail
+      captures the steer exactly.
       (If the AskUserQuestion tool is unavailable, ask in plain conversation
       and wait — the pause is the contract, not the widget.)
    c. Repeat rounds until the user concludes.
